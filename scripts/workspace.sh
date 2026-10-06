@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # agent-workspace 维护脚本
 #
+#   ./scripts/workspace.sh init               新实例就绪：clone 缺失的仓库 + 自检
 #   ./scripts/workspace.sh clone              按 repos.tsv 克隆缺失的仓库
 #   ./scripts/workspace.sh check              自检：AGENTS.md、软链、skill 元数据、仓库清单
 #   ./scripts/workspace.sh new <skill-name>   生成自研 skill 模板
@@ -127,6 +128,16 @@ cmd_clone() {
     clone_repo "${url}" "${branch}" "${kind}" "${target}"
     ok "${name}: 已克隆${kind:+（kind=${kind}）}"
   done < "${MANIFEST}"
+}
+
+cmd_init() {
+  cmd_clone
+  cmd_check
+  printf '\n'
+  printf '  下一步：\n'
+  printf '    1) 编辑 repos.tsv 增删仓库（kind 留空 = 业务仓库，skill = skill 源）\n'
+  printf '    2) ./scripts/workspace.sh clone   # 再拉一次新建的条目\n'
+  printf '    3) pi                             # 或 claude / codex，都在这个目录启动\n'
 }
 
 cmd_add() {
@@ -326,6 +337,7 @@ cmd="${1:-help}"
 shift || true
 
 case "${cmd}" in
+  init)   cmd_init ;;
   clone)  cmd_clone ;;
   check)  cmd_check ;;
   new)    cmd_new "$@" ;;

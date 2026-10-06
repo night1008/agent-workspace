@@ -1,9 +1,11 @@
 # 仓库清单：name <TAB> url <TAB> branch <TAB> kind
 #   kind 留空 / repo = 业务仓库，完整克隆（要历史）
 #   kind = skill      = skill 源，只读工作树，浅克隆（--depth 1）
-# scripts/workspace.sh clone 只克隆 repos/ 下缺失的仓库；已存在的目录一律不动。
+#
+# ./scripts/workspace.sh clone 只克隆 repos/ 下缺失的仓库；已存在的目录一律不动。
+# 下面全是示例行，换成你自己的；不用的整行删掉即可。
 #
 # your-service	git@your-host:your-org/your-service.git	main
-#
-# skill 源仓库：给 .agents/skills 里的软链提供目标
+
+# 示例：skill 源仓库。删掉这行 + .agents/skills 里的 9 个软链，就得到干净骨架。
 mattpocock-skills	https://github.com/mattpocock/skills	main	skill
