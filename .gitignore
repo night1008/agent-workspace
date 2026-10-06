@@ -1,0 +1,10 @@
+# 业务仓库：各自独立 clone，内容不进本仓库版本控制
+repos/*
+!repos/.gitkeep
+
+# 系统 / 编辑器
+.DS_Store
+
+# pi
+.pi/npm/
+.pi/git/
