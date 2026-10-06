@@ -120,7 +120,7 @@ git -C repos/mattpocock-skills fetch --depth 1 && git -C repos/mattpocock-skills
 两个注意点：
 
 - 上游 skill 的内容是**只读**的：要改就得改 `repos/<repo>` 里的文件（那就变成你对那个仓库的改动），或者在 `.agents/skills/` 里自研一个同名 skill。
-- 上游 SKILL.md 里的调用写法是自带 Agent 的语法。例如 `mattpocock/skills` 的 `grill-me` 正文是「Call the Skill tool with "grilling"」（Claude Code 语法），软链过来在 pi / Codex 里语义不对，而软链又改不了——所以这种转发壳直接不链，用 `/skill:grilling` 就行。
+- 上游 SKILL.md 里的调用写法是**上游自己的约定**（mattpocock/skills 的 CHANGELOG 写明：把 10 个 skill 的跨 skill 调用统一改成「call the Skill tool」，不用 `/skill` 式散文），在 pi / Codex 里语义不对，而软链改不了。所以 `grill-me` 这种只有一行正文的转发壳不链——它本来就依赖 `grilling`（上游文档也写了：单独装 `grill-me` 会没反应），用 `/skill:grilling` 就行。
 
 ### 新增共享规则
 
