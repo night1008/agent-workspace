@@ -6,11 +6,23 @@
 ## 怎么用
 
 ```bash
-# 一、开一个新工作区
-gh repo create my-workspace --template <owner>/agent-workspace --private
-#   或者：git clone --depth 1 <本仓库 URL> my-workspace && cd my-workspace && rm -rf .git && git init
+# 一、开一个新工作区（二选一）
 
-cd my-workspace
+# A. 用 GitHub 模板
+#    前提：装了 gh 并已登录，且模板仓库勾了 Settings → Template repository
+gh repo create my-workspace --template night1008/agent-workspace --private
+
+# B. 直接复制（不需要 gh，一样不带历史）
+git clone --depth 1 https://github.com/night1008/agent-workspace.git my-workspace
+cd my-workspace && rm -rf .git && git init
+```
+
+上面用的是本仓库自己的地址；如果你是从别人的 fork 复制的，把 `night1008/agent-workspace` 换成你正在看的那份。
+
+然后不管哪条路：
+
+```bash
+cd my-workspace               # 走的 B 路线已经进来了，跳过这行
 $EDITOR repos.tsv             # name <TAB> url <TAB> branch <TAB> kind（kind 留空 = 业务仓库，skill = skill 源）
 ./scripts/workspace.sh init   # 克隆 repos.tsv 里的仓库 + 自检，幂等
 pi                            # 或 claude / codex，都在这个目录启动
