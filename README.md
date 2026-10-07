@@ -41,6 +41,7 @@ pi                            # 或 claude / codex / agy，都在这个目录启
 | `new <name>` | 生成自研 skill 模板 |
 | `add <repo> <路径>` | 把 `repos/<repo>` 里的 skill 软链进 `.agents/skills/` |
 | `remove <name>` | 移除该软链（实体目录不动） |
+| `update [--apply]` | 对比本地与上游；`--apply` 拉到最新（skill 源 reset，业务仓库只 fast-forward） |
 
 任何命令都可加 `--dry-run`。
 
@@ -68,17 +69,16 @@ printf 'mattpocock-skills\thttps://github.com/mattpocock/skills\tmain\tskill\n' 
 `.agents/skills/<name> -> ../../repos/<repo>/<path>`（名字默认取目录名，可用 `--name` 覆盖）。
 `remove <name>` 只删软链。
 
-更新就是拉上游，没有第二步同步：
+- 更新用 `update`（先只看，再应用）：
 
 ```bash
-git -C repos/mattpocock-skills pull          # 软链目标跟着变
+./scripts/workspace.sh update            # 只读：fetch 后对比本地与上游，列出差异
+./scripts/workspace.sh update --apply    # 应用：软链目标跟着变
 ```
 
-`repos.tsv` 的第四列标它是什么：留空 / `repo` 是业务仓库，完整克隆（要历史）；`skill` 是 skill 源，只读工作树，所以 `clone` 用 `--depth 1`——`mattpocock-skills` 这样是 1.5M 而不是 3.2M。浅克隆里 `git pull` 正常；如果上游改写了历史、`pull` 报不能 fast-forward，就：
+`repos.tsv` 的第四列标仓库类型：留空 / `repo` 是业务仓库，完整克隆（要历史），更新走 `pull --ff-only`；`skill` 是 skill 源，只读工作树，所以 `clone` 用 `--depth 1`（`mattpocock-skills` 这样是 1.5M 而不是 3.2M），更新走 `fetch --depth 1` + `reset --hard`。
 
-```bash
-git -C repos/mattpocock-skills fetch --depth 1 && git -C repos/mattpocock-skills reset --hard origin/main
-```
+**为什么 skill 源用 reset 而不是 pull**：上游会不定期改写历史（squash 发布），浅克隆下 `pull` 会直接报 `Not possible to fast-forward`——这不是异常，是常态。skill 源对我们只读（软链改不了正文），所以 reset 是安全的；业务仓库则一律只 `pull --ff-only`，绝不 reset。两边有未提交改动时 `update` 会跳过并提醒。
 
 为什么不用复制：软链只有一份真身，`git pull` 就是更新，也不会出现「仓库里是新版、全局是旧版」这种漂移。代价是**软链必须指向工作区内**（相对路径），所以上游仓库要 clone 到 `repos/` 并有 `repos.tsv` 登记——否则别人 clone 这个工作区只会拿到一堆坏链，`check` 会把它们报出来。
 

@@ -6,10 +6,10 @@
 
 | 路径 | 是什么 |
 | --- | --- |
-| `repos/<repo>/` | 外部仓库的本地 checkout（业务仓库或 skill 源）；本仓库不跟踪其内容 |
+| `repos/<repo>/` | 外部仓库的本地 checkout（业务仓库或 skill 源）；本仓库不跟踪其内容，用 `update` 拉最新 |
 | `.agents/rules/` | 跨仓库规则，按需读取 |
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
-| `scripts/workspace.sh` | init / clone / check / new / add / remove |
+| `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
 
 ## 开工
 

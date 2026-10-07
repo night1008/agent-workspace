@@ -8,6 +8,8 @@
 #   ./scripts/workspace.sh add <repo> <repo 内路径> [--name <skill>]
 #                                             把 repos/<repo> 里的 skill 软链进 .agents/skills/
 #   ./scripts/workspace.sh remove <skill>     移除该软链（实体目录不动）
+#   ./scripts/workspace.sh update [repo...]   对比本地与上游（只读）
+#   ./scripts/workspace.sh update --apply     拉到上游最新（skill 源 reset，业务仓库只 fast-forward）
 #
 # 第三方 skill 一律用软链，不复制内容：更新就是 git -C repos/<repo> pull。
 #
@@ -99,6 +101,26 @@ manifest_lookup() { # <name>
   return 1
 }
 
+# 仓库在 repos.tsv 里登记的分支（没登记就用当前分支）
+repo_branch() { # <name>
+  local lookup b
+  if lookup="$(manifest_lookup "$1")"; then
+    b="$(printf '%s' "${lookup}" | cut -f2)"
+    if [[ -n "${b}" ]]; then printf '%s\n' "${b}"; return 0; fi
+  fi
+  git -C "${REPOS_DIR}/$1" rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'main\n'
+}
+
+# 仓库类型：skill = 只读的 skill 源（可 reset），其他当业务仓库（只 pull --ff-only）
+repo_kind() { # <name>
+  local lookup k
+  if lookup="$(manifest_lookup "$1")"; then
+    k="$(printf '%s' "${lookup}" | cut -f3)"
+    if [[ -n "${k}" ]]; then printf '%s\n' "${k}"; return 0; fi
+  fi
+  printf 'repo\n'
+}
+
 # clone_repo <url> <branch> <kind> <dest>
 # kind=skill 表示只是 skill 源：只读工作树，不需要历史 → 浅克隆
 clone_repo() {
@@ -128,6 +150,76 @@ cmd_clone() {
     clone_repo "${url}" "${branch}" "${kind}" "${target}"
     ok "${name}: 已克隆${kind:+（kind=${kind}）}"
   done < "${MANIFEST}"
+}
+
+cmd_update() {
+  local apply=0 wanted=() a repo dir branch kind dirty head_sha up_sha changed=0
+  for a in "$@"; do
+    case "${a}" in
+      --apply) apply=1 ;;
+      -*) die "未知选项：${a}" ;;
+      *) wanted+=("${a}") ;;
+    esac
+  done
+
+  local repos=()
+  if [[ ${#wanted[@]} -gt 0 ]]; then
+    repos=("${wanted[@]}")
+  else
+    while read -r a; do repos+=("$a"); done < <(list_repo_dirs)
+  fi
+  if [[ ${#repos[@]} -eq 0 ]]; then skip "repos/ 下没有仓库"; return 0; fi
+
+  title "$(if [[ ${apply} -eq 1 ]]; then echo "拉到上游最新（会写文件）"; else echo "对比本地与上游（只读）"; fi)"
+
+  for repo in "${repos[@]}"; do
+    dir="${REPOS_DIR}/${repo}"
+    if [[ ! -d "${dir}/.git" && ! -f "${dir}/.git" ]]; then warn "${repo}: 不是 git 仓库，跳过"; continue; fi
+    branch="$(repo_branch "${repo}")"
+    kind="$(repo_kind "${repo}")"
+    dirty="$(git -C "${dir}" status --porcelain)"
+    if [[ -n "${dirty}" ]]; then
+      warn "${repo}: 有未提交改动，跳过（自己先处理）"
+      changed=$((changed + 1))
+      continue
+    fi
+    if [[ "${kind}" == "skill" ]]; then
+      run git -C "${dir}" fetch --depth 1 --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; changed=$((changed + 1)); continue; }
+    else
+      run git -C "${dir}" fetch --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; changed=$((changed + 1)); continue; }
+    fi
+    head_sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null || true)"
+    up_sha="$(git -C "${dir}" rev-parse "origin/${branch}" 2>/dev/null || true)"
+    if [[ -z "${up_sha}" ]]; then warn "${repo}: 找不到 origin/${branch}"; changed=$((changed + 1)); continue; fi
+    if [[ "${head_sha}" == "${up_sha}" ]]; then ok "${repo}: 已是最新（${head_sha:0:7}）"; continue; fi
+
+    changed=$((changed + 1))
+    warn "${repo}: ${head_sha:0:7} → ${up_sha:0:7}"
+    git -C "${dir}" log --oneline -1 "origin/${branch}" | sed 's/^/      /'
+    git -C "${dir}" diff --stat HEAD "origin/${branch}" 2>/dev/null | tail -1 | sed 's/^/      /'
+
+    if [[ ${apply} -eq 1 ]]; then
+      if [[ "${kind}" == "skill" ]]; then
+        run git -C "${dir}" reset --hard "origin/${branch}" >/dev/null
+        ok "${repo}: 已重置到上游（skill 源是只读的，上游改写历史也照这个处理）"
+      else
+        if run git -C "${dir}" pull --ff-only --quiet origin "${branch}"; then
+          ok "${repo}: 已 fast-forward"
+        else
+          warn "${repo}: 不能 fast-forward（上游改写了历史，或本地有分叉）——手动处理"
+        fi
+      fi
+    fi
+  done
+
+  printf '\n'
+  if [[ ${changed} -eq 0 ]]; then
+    ok "全部已是最新"
+  elif [[ ${apply} -eq 1 ]]; then
+    ok "已处理 ${changed} 个仓库"
+  else
+    warn "${changed} 个仓库可更新——确认后跑 update --apply"
+  fi
 }
 
 cmd_init() {
@@ -341,6 +433,7 @@ case "${cmd}" in
   clone)  cmd_clone ;;
   check)  cmd_check ;;
   new)    cmd_new "$@" ;;
+  update) cmd_update "$@" ;;
   add)    cmd_add "$@" ;;
   remove) cmd_remove "$@" ;;
   help|-h|--help) usage ;;
