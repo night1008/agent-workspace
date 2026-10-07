@@ -22,10 +22,13 @@ REPOS_DIR="${WS}/repos"
 SHARED_SKILLS="${WS}/.agents/skills"
 MANIFEST="${WS}/repos.tsv"
 
-# 共享 skills 的对外入口。一次建好、跟着 git 走，不需要按仓库做任何事。
-#   .agents/skills  pi 与 Codex 直接读这个目录
+# Claude 兼容层（一次建好、跟着 git 走）：
 #   .claude/skills  Claude Code 只认这个位置，所以指回 .agents/skills
+#   CLAUDE.md       只认 CLAUDE.md 的 agent 拿不到指令，所以指向 AGENTS.md 保持同源
+# 想再兼容别的 agent（如 .windsurf/skills），把路径追加到 LINKS 即可。
 LINKS=".claude/skills"
+AGENT_DOC_LINK="CLAUDE.md"
+AGENT_DOC_TARGET="AGENTS.md"
 
 DRY_RUN=0
 ARGS=()
@@ -174,7 +177,7 @@ cmd_update() {
 
   for repo in "${repos[@]}"; do
     dir="${REPOS_DIR}/${repo}"
-    if [[ ! -d "${dir}/.git" && ! -f "${dir}/.git" ]]; then warn "${repo}: 不是 git 仓库，跳过"; continue; fi
+    if [[ ! -d "${dir}/.git" && ! -f "${dir}/.git" ]]; then skip "${repo}: 不是 git 仓库，跳过"; continue; fi
     branch="$(repo_branch "${repo}")"
     kind="$(repo_kind "${repo}")"
     dirty="$(git -C "${dir}" status --porcelain)"
@@ -319,6 +322,21 @@ cmd_check() {
     fi
   done
 
+  if [[ -L "${WS}/${AGENT_DOC_LINK}" ]]; then
+    resolved="$(readlink "${WS}/${AGENT_DOC_LINK}")"
+    if [[ "${resolved}" == "${AGENT_DOC_TARGET}" ]]; then
+      ok "${AGENT_DOC_LINK} -> ${AGENT_DOC_TARGET}（只认 CLAUDE.md 的 agent 也拿得到指令）"
+    else
+      warn "${AGENT_DOC_LINK} 指向 ${resolved}，不是 ${AGENT_DOC_TARGET}——两份内容会漂移"
+      problems=$((problems + 1))
+    fi
+  elif [[ -e "${WS}/${AGENT_DOC_LINK}" ]]; then
+    warn "${AGENT_DOC_LINK} 是实体文件，与 ${AGENT_DOC_TARGET} 各改各的——改成软链：rm ${AGENT_DOC_LINK} && ln -s ${AGENT_DOC_TARGET} ${AGENT_DOC_LINK}"
+    problems=$((problems + 1))
+  else
+    skip "没有 ${AGENT_DOC_LINK}（只读 CLAUDE.md 的 agent 拿不到指令；需要就 ln -s ${AGENT_DOC_TARGET} ${AGENT_DOC_LINK}）"
+  fi
+
   title "软链的 skill"
   local n_links=0
   # 这里用不带斜杠的 glob：坏链也要能被列出来（带斜杠的 glob 会跳过它们）
@@ -370,7 +388,9 @@ cmd_check() {
   while read -r repo; do
     repo_dir="${REPOS_DIR}/${repo}"
     if [[ ! -d "${repo_dir}" ]]; then warn "${repo}: 目录不存在"; problems=$((problems + 1)); continue; fi
-    if [[ -e "${repo_dir}/AGENTS.md" ]]; then
+    if [[ ! -e "${repo_dir}/.git" ]]; then
+      skip "${repo}: 不是 git 仓库（本地草稿 / 快照；clone 与 update 会跳过它）"
+    elif [[ -e "${repo_dir}/AGENTS.md" ]]; then
       ok "${repo}: 自带 AGENTS.md（顶层会话不会自动加载它，根 AGENTS.md 已内置「先读它」）"
     else
       skip "${repo}: 无自带 AGENTS.md"
