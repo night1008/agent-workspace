@@ -61,6 +61,8 @@ printf 'your-service\tgit@your-host:your-org/your-service.git\tmain\n' >> repos.
 
 也可以直接 `git clone <url> repos/<name>`。`repos.tsv` 供 `clone` 和 `add`（自动拉取缺失的 skill 源）使用，不影响仓库里的其他逻辑。
 
+`repos.tsv` 是**本机**清单，不进 git（`.gitignore` 里那行）；模板是 `repos.example.tsv`，`init` 缺文件时自动生成，`clone` 缺文件时报错并给出命令。所以团队共享的仓库清单要写进 `repos.example.tsv`——它跟着 git 走，别人 `init` 就得到同一份。
+
 ### 跨仓库任务怎么提交
 
 一次任务可能横跨好几个仓库，但**提交必须一个仓库一个**：
@@ -85,6 +87,16 @@ git -C repos/svc-b add -A && git -C repos/svc-b commit -m "feat: ..."
 
 实测过的两种情形：浅克隆 + **线性**上游 → `git pull` 正常；上游**改写历史**（squash / force-push）→ `pull --ff-only` 报 `Not possible to fast-forward`，这时用 `git fetch --depth 1 && git reset --hard origin/main`（会覆盖本地对该文件的改动）。上游是 `repos/mattpocock-skills` 那种用 squash 发布的，就按后者处理，`update --apply` 里已经这么做了。
 
+`repos.tsv` 从跟踪改成不跟踪（`chore(workspace)` 那次）会撞一次 `delete/modify` 冲突：上游删了它，而你本地改过。按这个顺序处理，别让它把本机清单带走：
+
+```bash
+cp repos.tsv /tmp/repos.tsv.bak
+git fetch template && git merge template/main   # 冲突落在 repos.tsv
+git rm -f repos.tsv                             # 接受上游的删除
+git commit                                      # 完成合并
+mv /tmp/repos.tsv.bak repos.tsv                 # 本机那份放回来（已在 .gitignore 里）
+```
+
 ### 全局 skill ↔ 工作区 skill
 
 - 全局：`~/.pi/agent/skills/`（所有项目都加载，脱离版本控制，换机器会丢）
@@ -94,12 +106,12 @@ git -C repos/svc-b add -A && git -C repos/svc-b commit -m "feat: ..."
 
 ## 有哪些是示例（想清空就清空）
 
-脚手架本身只有六件东西：`AGENTS.md`（+ `CLAUDE.md` 软链）、`repos.tsv`、`.agents/{rules,skills}/`、`.claude/skills`、`scripts/workspace.sh`。其余都是实例内容：
+脚手架本身只有六件东西：`AGENTS.md`（+ `CLAUDE.md` 软链）、`repos.example.tsv`、`.agents/{rules,skills}/`、`.claude/skills`、`scripts/workspace.sh`。其余都是实例内容：
 
 | 路径 | 是什么 | 不要了就 |
 | --- | --- | --- |
 | `.agents/skills/` 里的 9 个软链 | 订阅了 [mattpocock/skills](https://github.com/mattpocock/skills) 的一套开发流程 | `for s in …; do ./scripts/workspace.sh remove $s; done` |
-| `repos.tsv` 里的 `mattpocock-skills` 行 | 上面那 9 个软链的目标 | 删掉那行 |
+| `repos.example.tsv` 里的 `mattpocock-skills` 行 | 上面那 9 个软链的目标 | 删掉那行（本机 `repos.tsv` 里同步删） |
 | `.agents/rules/dev-flow.md` + `AGENTS.md` 路由表里对应那行 | 跟那套流程绑定的规则 | 两处一起删，别只删一个 |
 | `.agents/rules/go.md` | 示例规则（Go 专用） | 删文件 + 删路由表那行 |
 | `.agents/rules/{before-implementing,prompt-writing}.md` | 通用规则，可以留 | — |

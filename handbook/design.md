@@ -10,7 +10,7 @@ agent-workspace/
 ├── CLAUDE.md              # -> AGENTS.md（只认 CLAUDE.md 的 agent 用，同源不漂移）
 ├── README.md              # 入口，给人看的
 ├── .ignore                # 搜索工具的忽略清单：隐藏面向人的文档、把 repos/ 白名单回来
-├── repos.tsv              # 仓库清单：name <TAB> url <TAB> branch <TAB> kind
+├── repos.example.tsv      # 仓库清单模板（name <TAB> url <TAB> branch <TAB> kind）；本机 repos.tsv 由它生成，不进 git
 ├── .agents/
 │   ├── skills/            # 跨仓库共享 skills（每个子目录一个 SKILL.md；第三方用相对软链）
 │   └── rules/             # 跨仓库规则，按需读取，永远不会自动进上下文
@@ -88,7 +88,7 @@ agent-workspace/
 
 | 方案 | 为什么没选 |
 | --- | --- |
-| `git submodule` | 父仓库记录 commit 指针，clone / pull 两层耦合；「顺手改一下另一个仓库」要先切子模块再切回来。`repos/` + `repos.tsv` 更松耦合 |
+| `git submodule` | 父仓库记录 commit 指针，clone / pull 两层耦合；「顺手改一下另一个仓库」要先切子模块再切回来。`repos/` + 清单文件更松耦合 |
 | 在每个仓库放 `.pi/settings.json` 声明共享 skills 路径 | 要改每个业务仓库、每个仓库单独 trust、路径跟着机器变。现在只在顶层放一个 `.claude/skills` 软链 |
 | 全塞进 `~/.pi/agent/skills/` | 所有项目都加载（无关仓库白背上下文成本），且脱离版本控制 |
 | 业务仓库直接放在工作区根目录下（`agent-workspace/<repo>`） | `repos.tsv`、软链、gitignore 的规则都会变复杂，根目录也会被仓库文件淹没 |

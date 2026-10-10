@@ -11,6 +11,8 @@
 #   ./scripts/workspace.sh update [repo...]   对比本地与上游（只读）
 #   ./scripts/workspace.sh update --apply     拉到上游最新（skill 源 reset，业务仓库只 fast-forward）
 #
+# repos.tsv 是本机清单，不进 git；模板是 repos.example.tsv，init 缺文件时会自动生成。
+#
 # 第三方 skill 一律用软链，不复制内容：更新就是 git -C repos/<repo> pull。
 #
 # 选项：--dry-run
@@ -21,6 +23,7 @@ WS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPOS_DIR="${WS}/repos"
 SHARED_SKILLS="${WS}/.agents/skills"
 MANIFEST="${WS}/repos.tsv"
+MANIFEST_EXAMPLE="${WS}/repos.example.tsv"
 
 # Claude 兼容层（一次建好、跟着 git 走）：
 #   .claude/skills  Claude Code 只认这个位置，所以指回 .agents/skills
@@ -85,6 +88,18 @@ list_repo_dirs() {
   done
 }
 
+# ensure_manifest [copy] —— 缺 repos.tsv 时：copy = 从 example 生成，否则报错并给出命令
+ensure_manifest() {
+  [[ -f "${MANIFEST}" ]] && return 0
+  [[ -f "${MANIFEST_EXAMPLE}" ]] || die "找不到 ${MANIFEST}，也没有 ${MANIFEST_EXAMPLE}"
+  if [[ "${1:-}" == "copy" ]]; then
+    run cp "${MANIFEST_EXAMPLE}" "${MANIFEST}"
+    [[ ${DRY_RUN} -eq 1 ]] || ok "已生成 repos.tsv（来自 repos.example.tsv）——改它，别改 example"
+    return 0
+  fi
+  die "找不到 ${MANIFEST}：先 cp repos.example.tsv repos.tsv，再按需编辑"
+}
+
 # repos.tsv 里查 url / branch / kind
 manifest_lookup() { # <name>
   local n u b k
@@ -137,7 +152,7 @@ clone_repo() {
 # ---------------------------------------------------------------- commands
 
 cmd_clone() {
-  if [[ ! -f "${MANIFEST}" ]]; then die "找不到 ${MANIFEST}"; fi
+  ensure_manifest
   title "克隆 repos.tsv 中缺失的仓库"
   local name url branch kind target
   while IFS=$'\t' read -r name url branch kind || [[ -n "${name}" ]]; do
@@ -226,8 +241,12 @@ cmd_update() {
 }
 
 cmd_init() {
-  cmd_clone
-  cmd_check
+  ensure_manifest copy
+  # dry-run 下清单没真的生成，后面的步骤跳过（否则 clone 会因缺清单报错）
+  if [[ -f "${MANIFEST}" ]]; then
+    cmd_clone
+    cmd_check
+  fi
   printf '\n'
   printf '  下一步：\n'
   printf '    1) 编辑 repos.tsv 增删仓库（kind 留空 = 业务仓库，skill = skill 源）\n'
@@ -267,6 +286,7 @@ cmd_add() {
       warn "repos/${repo} 还没克隆，先从 repos.tsv 拉下来${kind:+（kind=${kind}）}"
       clone_repo "${url}" "${branch}" "${kind}" "${REPOS_DIR}/${repo}"
     else
+      [[ -f "${MANIFEST}" ]] || die "找不到 ${MANIFEST}：先 cp repos.example.tsv repos.tsv，再按需编辑"
       die "repos/${repo} 不存在，repos.tsv 里也没有它的 URL"
     fi
   fi
@@ -398,7 +418,9 @@ cmd_check() {
   done < <(list_repo_dirs)
 
   title "repos.tsv 与磁盘"
-  if [[ -f "${MANIFEST}" ]]; then
+  if [[ ! -f "${MANIFEST}" ]]; then
+    warn "缺 repos.tsv：cp repos.example.tsv repos.tsv 之后再跑一次"
+  else
     while IFS=$'\t' read -r name url branch || [[ -n "${name:-}" ]]; do
       name="${name%%#*}"
       name="$(echo "${name}" | tr -d '[:space:]')"
