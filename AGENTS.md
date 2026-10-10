@@ -10,6 +10,7 @@
 | `.agents/rules/` | 跨仓库规则，按需读取 |
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
+| `README.md`、`handbook/` | 面向人的脚手架说明；只在改工作区自身时读（`.ignore` 让 rg / fd 搜不到它们） |
 
 ## 开工
 

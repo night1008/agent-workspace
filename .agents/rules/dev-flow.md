@@ -48,7 +48,6 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 | 领域术语 `GLOSSARY.md`、决策 `docs/adr/` | 目标仓库根（`domain-modeling` 就地更新） |
 | 每个仓库的 skill 配置 | `repos/<repo>/docs/agents/` |
 | 跨仓库的规则与清单 | `.agents/rules/`，并在根 `AGENTS.md` 路由表加一行 |
-| 工作区自身的决策与说明 | 根 `README.md`（入口）、`handbook/`（用法、设计、坑） |
 | 短命状态（handoff、临时笔记） | 系统临时目录，不进仓库 |
 
 判据：**这份文档的生命周期属于谁，就放在谁那里。** 单仓库的文档写进顶层，代码历史里就查不到设计与决策。

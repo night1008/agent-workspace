@@ -1,0 +1,14 @@
+# 搜索工具的忽略清单：rg / fd / ag 读它，git 完全不读。
+# 目的：agent 从工作区根搜索时能跨仓库看到全部内容，又不顺手读掉面向人的脚手架文档。
+
+# 面向人的脚手架说明（入口、用法、设计、坑）：只在改工作区自身时才需要，平时别读
+README.md
+handbook/
+
+# .gitignore 里的 repos/* 会让 rg / fd 静默跳过整个 repos/。
+# .ignore 优先级高于 .gitignore，这里反向白名单把跨仓库搜索找回来
+# （各业务仓库自己的 .gitignore 在各自目录内照常生效）。
+!repos/*
+
+# pi 的 grep / find 工具带 --hidden：不挡掉 .git，搜索会连 git 内部一起翻
+.git/
