@@ -37,8 +37,9 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 | **编排型**（只能手动调，会写文件） | `setup-matt-pocock-skills`、`grill-with-docs`、`to-spec`、`to-tickets`、`implement-spec` | **cwd 必须是目标仓库**：它们读写 `docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/` 这些相对路径 |
 | **纪律型**（模型也会自动用，是方法论） | `tdd`、`code-review`、`domain-modeling`、`grilling` | 任何 cwd 都能用 |
 
-所以：**单仓库功能进 `repos/<repo>/` 里启动会话**（`cd repos/<repo> && pi`），跨仓库任务在工作区根跑。
-在顶层跑编排型 skill，配置和文档会落到工作区根，配错对象。
+所以：**一律在工作区根启动会话**（根是唯一启动点，见 `handbook/design.md`），单仓库与跨仓库任务没有区别。唯一要额外记住的是：上表那列「cwd 必须是目标仓库」里的相对路径，在根会话里的基准是**会话 cwd**，所以正文的 `docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/` 要读成 `repos/<repo>/` 前缀——不带前缀，配置和文档就落到工作区根，配错对象。
+
+**别用 `cd repos/<repo> && pi` 绕过**：各家的 skills 向上扫描遇仓库根即停（见 `handbook/design.md` 的表），进去以后这 9 个 skill 只剩用户级那份 `grilling` 可达，主链其余 8 个都拿不到。
 
 ## 产物落在哪
 

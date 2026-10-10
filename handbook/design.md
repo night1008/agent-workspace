@@ -9,6 +9,7 @@ agent-workspace/
 ├── AGENTS.md              # 常驻上下文：仓库地图、规则路由表、硬约定
 ├── CLAUDE.md              # -> AGENTS.md（只认 CLAUDE.md 的 agent 用，同源不漂移）
 ├── README.md              # 入口，给人看的
+├── .ignore                # 搜索工具的忽略清单：隐藏面向人的文档、把 repos/ 白名单回来
 ├── repos.tsv              # 仓库清单：name <TAB> url <TAB> branch <TAB> kind
 ├── .agents/
 │   ├── skills/            # 跨仓库共享 skills（每个子目录一个 SKILL.md；第三方用相对软链）
@@ -62,9 +63,26 @@ agent-workspace/
 
 工作区根是唯一的启动点。共享的 `AGENTS.md`、skills、rules 都在这一次会话里生效，跨仓库改动就是普通的多次 `edit`。
 
-代价只有一条：**`repos/<repo>/` 里的东西不会自动加载**——该仓库自己的 `AGENTS.md`、`.pi/`、`.claude/`、仓库级 hook 都需要显式对待。根 `AGENTS.md` 已内置「开工前先读目标仓库的 AGENTS.md」这条规则；其余需要时在会话里 `cd repos/<repo> && <命令>` 跑，不影响 skills 与 rules。
+两条代价：
 
-哪天改成在 `repos/<repo>/` 里启动，要知道各家的 skills 扫描都会在仓库根停下（见上表），顶层 `.agents/skills` 就看不到了——那时再把 skills 放进用户级目录。
+1. **`repos/<repo>/` 里的东西不会自动加载**——该仓库自己的 `AGENTS.md`、`.pi/`、`.claude/`、仓库级 hook 都需要显式对待。根 `AGENTS.md` 已内置「开工前先读目标仓库的 AGENTS.md」这条规则；bash 命令需要时在会话里 `cd repos/<repo> && <命令>` 跑，不影响 skills 与 rules。
+2. **落在目标仓库里的相对路径要自己带前缀**。pi 的 `read` / `write` / `edit` 按会话 cwd（工作区根）解析相对路径，而编排型 skill 的正文只写裸相对路径（`docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/`，见 `.agents/rules/dev-flow.md`），所以要读成 `repos/<repo>/docs/agents/`。bash 是例外：每条命令自带 cwd，`cd repos/<repo> && …` 就够。
+
+别靠「进 `repos/<repo>/` 里启动」来回避第 2 条：各家的 skills 向上扫描都在仓库根停下（见上表），进去以后顶层 `.agents/skills/` 就看不到了。真要那么用，得先把 skills 也放进用户级目录。
+
+## 搜索面：`.ignore`
+
+根目录的 `.ignore` 只服务搜索工具：rg / fd / ag 读它，git 完全不读。pi 内置的 `grep` / `find` 就是 rg / fd 的封装，用户敲的也是同一批命令，所以这份文件等于「agent 能看到什么」。三组规则各有目的：
+
+| 规则 | 为什么 |
+| --- | --- |
+| `README.md`、`handbook/` | 面向人的脚手架说明，只有改工作区自身时才需要；默认读掉只是白花上下文，定位也和根 `AGENTS.md` 重复 |
+| `!repos/*` | 反向白名单。根 `.gitignore` 里的 `repos/*` 会让 rg / fd **静默**跳过整个 `repos/`——从根搜索看不到任何业务代码，而根正是唯一启动点。`.ignore` 优先级高于 `.gitignore`，正好只修搜索层 |
+| `.git/` | pi 的 `grep` / `find` 带 `--hidden`，不挡会连 git 内部一起翻；嵌套仓库各自的 `.git` 同理 |
+
+为什么前两条不用 `.gitignore` 表达：`README.md`、`handbook/` 都是**已跟踪**文件，写进 `.gitignore` 语义不对；而且只有 `.ignore` 能做反向白名单——改 `.gitignore` 本身只会让 git 开始报未跟踪。`.ignore` 不参与 git，改它不影响提交与工作区状态。
+
+嵌套仓库自己的 `.gitignore` 不受影响（实测：探针仓库里的 `node_modules/`、`build/` 照常被排除）。
 
 ## 为什么不用别的方案
 
