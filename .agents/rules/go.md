@@ -18,7 +18,3 @@ go test ./...
 - 把 `read` 到的内容当依据之前，用 `ls` / `find` 确认文件确实在磁盘上。
 - 防御性代码只覆盖真实会发生的失败路径。
 - 改动范围停在当前需求内。
-
-## 提交
-
-- commit message 用中文，Conventional Commits 的类型前缀保留英文。

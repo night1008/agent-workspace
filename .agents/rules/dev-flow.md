@@ -9,23 +9,18 @@
 grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 code-review）
 ```
 
-| 阶段 | 命令 | 产物 |
+| 阶段 | 命令 | 产出 |
 | --- | --- | --- |
-| 一次配置 | `/skill:setup-matt-pocock-skills`（**每个仓库跑一次**） | `docs/agents/issue-tracker.md`、`domain.md`、`triage-labels.md` |
-| 对齐 + 定术语 | `/skill:grill-with-docs` | 就地更新 `GLOSSARY.md`、`docs/adr/` |
-| 出规格 | `/skill:to-spec` | 规格 → issue tracker（GitHub / GitLab / `.scratch/<feature>/` 本地 markdown） |
+| 一次配置（**每个仓库一次**） | `/skill:setup-matt-pocock-skills` | issue tracker、triage 标签、领域文档 layout 三项配置 |
+| 对齐 + 定术语 | `/skill:grill-with-docs` | 就地更新术语与决策 |
+| 出规格 | `/skill:to-spec` | 规格进 issue tracker |
 | 拆任务 | `/skill:to-tickets` | tracer-bullet 票据，带阻塞边 |
 | 实现 | `/skill:implement-spec` | 代码 + 测试；内部依次调 `tdd`、`code-review` |
 
-当前只装了这条链需要的 9 个：`setup-matt-pocock-skills`、`grill-with-docs`、`grilling`、`domain-modeling`、`to-spec`、`to-tickets`、`implement-spec`、`tdd`、`code-review`。
-
-上游还有这些没装，要哪个一条命令加上（链多了会稀释注意力，所以按需）：
+上游还有 12 个没装（`ask-matt`、`implement`、`diagnosing-bugs`、`codebase-design`、`improve-codebase-architecture`、`triage`、`wayfinder`、`pr`、`retro`、`research`、`prototype`、`wizard`）；链多了会稀释注意力，按需加，用途看上游 `docs/`：
 
 ```bash
 ./scripts/workspace.sh add mattpocock-skills skills/engineering/<名字>
-# ask-matt（不知道该用哪个时的路由器）、implement（不经票据直接实现）
-# diagnosing-bugs（难 bug 的诊断循环）、codebase-design（深模块词汇，tdd 会引用它）
-# improve-codebase-architecture、triage、wayfinder、pr、retro、research、prototype、wizard
 ```
 
 ## 两类 skill，跑在哪不一样
@@ -37,9 +32,9 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 | **编排型**（只能手动调，会写文件） | `setup-matt-pocock-skills`、`grill-with-docs`、`to-spec`、`to-tickets`、`implement-spec` | **cwd 必须是目标仓库**：它们读写 `docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/` 这些相对路径 |
 | **纪律型**（模型也会自动用，是方法论） | `tdd`、`code-review`、`domain-modeling`、`grilling` | 任何 cwd 都能用 |
 
-所以：**一律在工作区根启动会话**（根是唯一启动点，见 `handbook/design.md`），单仓库与跨仓库任务没有区别。唯一要额外记住的是：上表那列「cwd 必须是目标仓库」里的相对路径，在根会话里的基准是**会话 cwd**，所以正文的 `docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/` 要读成 `repos/<repo>/` 前缀——不带前缀，配置和文档就落到工作区根，配错对象。
+所以：**一律在工作区根启动会话**（根是唯一启动点，见 `handbook/design.md`）。上表那列的相对路径在根会话里的基准是**会话 cwd**，要读成 `repos/<repo>/` 前缀，否则配置和文档落到工作区根，配错对象。
 
-**别用 `cd repos/<repo> && pi` 绕过**：各家的 skills 向上扫描遇仓库根即停（见 `handbook/design.md` 的表），进去以后这 9 个 skill 只剩用户级那份 `grilling` 可达，主链其余 8 个都拿不到。
+**别用 `cd repos/<repo> && pi` 绕过**：各家的 skills 向上扫描遇仓库根即停，进去以后这 9 个只剩用户级那份 `grilling` 可达。
 
 ## 产物落在哪
 
