@@ -8,7 +8,7 @@
 #   ./scripts/workspace.sh add <repo> <repo 内路径> [--name <skill>]
 #                                             把 repos/<repo> 里的 skill 软链进 .agents/skills/
 #   ./scripts/workspace.sh remove <skill>     移除该软链（实体目录不动）
-#   ./scripts/workspace.sh update [repo...]   对比本地与上游（只读）
+#   ./scripts/workspace.sh update [repo...]   对比本地与上游（fetch 更新 Git 元数据）
 #   ./scripts/workspace.sh update --apply     拉到上游最新（skill 源 reset，业务仓库只 fast-forward）
 #
 # repos.tsv 是本机清单，不进 git；模板是 repos.example.tsv，init 缺文件时会自动生成。
@@ -100,19 +100,28 @@ ensure_manifest() {
   die "找不到 ${MANIFEST}：先 cp repos.example.tsv repos.tsv，再按需编辑"
 }
 
+# 按字面 TAB 拆分，保留中间空列；结果写入调用者的 name/url/branch/kind。
+parse_manifest_row() {
+  local row="${1%$'\r'}" tab=$'\t'
+  name="${row%%"${tab}"*}"
+  if [[ "${row}" == *"${tab}"* ]]; then row="${row#*"${tab}"}"; else row=""; fi
+  url="${row%%"${tab}"*}"
+  if [[ "${row}" == *"${tab}"* ]]; then row="${row#*"${tab}"}"; else row=""; fi
+  branch="${row%%"${tab}"*}"
+  if [[ "${row}" == *"${tab}"* ]]; then kind="${row#*"${tab}"}"; else kind=""; fi
+  name="${name%%#*}"
+  name="$(printf '%s' "${name}" | tr -d '[:space:]')"
+}
+
 # repos.tsv 里查 url / branch / kind
 manifest_lookup() { # <name>
-  local n u b k
+  local row name url branch kind
   [[ -f "${MANIFEST}" ]] || return 1
-  while IFS=$'\t' read -r n u b k || [[ -n "${n:-}" ]]; do
-    n="${n%%#*}"
-    n="$(echo "${n}" | tr -d '[:space:]')"
-    [[ -z "${n}" ]] && continue
-    if [[ "${n}" == "$1" ]]; then
-      u="$(echo "${u:-}" | tr -d '[:space:]')"
-      b="$(echo "${b:-}" | tr -d '[:space:]')"
-      k="$(echo "${k:-}" | tr -d '[:space:]')"
-      printf '%s\t%s\t%s\n' "${u}" "${b}" "${k}"
+  while IFS= read -r row || [[ -n "${row}" ]]; do
+    parse_manifest_row "${row}"
+    [[ -z "${name}" ]] && continue
+    if [[ "${name}" == "$1" ]]; then
+      printf '%s\t%s\t%s\n' "${url}" "${branch}" "${kind}"
       return 0
     fi
   done < "${MANIFEST}"
@@ -129,7 +138,7 @@ repo_branch() { # <name>
   git -C "${REPOS_DIR}/$1" rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'main\n'
 }
 
-# 仓库类型：skill = 只读的 skill 源（可 reset），其他当业务仓库（只 pull --ff-only）
+# 仓库类型：skill = 按约定不保留本地提交的源（可 reset），其他只 merge --ff-only
 repo_kind() { # <name>
   local lookup k
   if lookup="$(manifest_lookup "$1")"; then
@@ -146,7 +155,7 @@ clone_repo() {
   local -a flags=()
   if [[ "${kind}" == "skill" ]]; then flags+=(--depth 1); fi
   if [[ -n "${branch}" ]]; then flags+=(--branch "${branch}"); fi
-  run git clone "${flags[@]}" "${url}" "${dest}"
+  run git clone ${flags[@]+"${flags[@]}"} "${url}" "${dest}"
 }
 
 # ---------------------------------------------------------------- commands
@@ -154,13 +163,9 @@ clone_repo() {
 cmd_clone() {
   ensure_manifest
   title "克隆 repos.tsv 中缺失的仓库"
-  local name url branch kind target
-  while IFS=$'\t' read -r name url branch kind || [[ -n "${name}" ]]; do
-    name="${name%%#*}"
-    name="$(echo "${name}" | tr -d '[:space:]')"
-    url="$(echo "${url:-}" | tr -d '[:space:]')"
-    branch="$(echo "${branch:-}" | tr -d '[:space:]')"
-    kind="$(echo "${kind:-}" | tr -d '[:space:]')"
+  local row name url branch kind target
+  while IFS= read -r row || [[ -n "${row}" ]]; do
+    parse_manifest_row "${row}"
     [[ -z "${name}" ]] && continue
     if [[ -z "${url}" ]]; then warn "${name}: 清单里没有 url，跳过"; continue; fi
     target="${REPOS_DIR}/${name}"
@@ -171,7 +176,8 @@ cmd_clone() {
 }
 
 cmd_update() {
-  local apply=0 wanted=() a repo dir branch kind dirty head_sha up_sha changed=0
+  local apply=0 wanted=() a repo dir branch kind dirty head_sha up_sha current
+  local updated=0 failed=0 skipped=0 pending=0 latest=0
   for a in "$@"; do
     case "${a}" in
       --apply) apply=1 ;;
@@ -188,56 +194,71 @@ cmd_update() {
   fi
   if [[ ${#repos[@]} -eq 0 ]]; then skip "repos/ 下没有仓库"; return 0; fi
 
-  title "$(if [[ ${apply} -eq 1 ]]; then echo "拉到上游最新（会写文件）"; else echo "对比本地与上游（只读）"; fi)"
+  title "$(if [[ ${apply} -eq 1 ]]; then echo "拉到上游最新（会写文件）"; else echo "对比本地与上游（fetch 更新 Git 元数据，不改工作树）"; fi)"
 
   for repo in "${repos[@]}"; do
     dir="${REPOS_DIR}/${repo}"
-    if [[ ! -d "${dir}/.git" && ! -f "${dir}/.git" ]]; then skip "${repo}: 不是 git 仓库，跳过"; continue; fi
+    if [[ ! -d "${dir}/.git" && ! -f "${dir}/.git" ]]; then skip "${repo}: 不是 git 仓库，跳过"; skipped=$((skipped + 1)); continue; fi
     branch="$(repo_branch "${repo}")"
     kind="$(repo_kind "${repo}")"
+    current="$(git -C "${dir}" symbolic-ref --quiet --short HEAD || true)"
+    if [[ ${apply} -eq 1 && ( -z "${current}" || "${current}" != "${branch}" ) ]]; then
+      warn "${repo}: 当前分支 ${current:-detached HEAD} 与目标 ${branch} 不一致，未更新"
+      failed=$((failed + 1))
+      continue
+    fi
     dirty="$(git -C "${dir}" status --porcelain)"
     if [[ -n "${dirty}" ]]; then
       warn "${repo}: 有未提交改动，跳过（自己先处理）"
-      changed=$((changed + 1))
+      skipped=$((skipped + 1))
       continue
     fi
     if [[ "${kind}" == "skill" ]]; then
-      run git -C "${dir}" fetch --depth 1 --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; changed=$((changed + 1)); continue; }
+      run git -C "${dir}" fetch --depth 1 --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; failed=$((failed + 1)); continue; }
     else
-      run git -C "${dir}" fetch --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; changed=$((changed + 1)); continue; }
+      run git -C "${dir}" fetch --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; failed=$((failed + 1)); continue; }
     fi
     head_sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null || true)"
-    up_sha="$(git -C "${dir}" rev-parse "origin/${branch}" 2>/dev/null || true)"
-    if [[ -z "${up_sha}" ]]; then warn "${repo}: 找不到 origin/${branch}"; changed=$((changed + 1)); continue; fi
-    if [[ "${head_sha}" == "${up_sha}" ]]; then ok "${repo}: 已是最新（${head_sha:0:7}）"; continue; fi
+    # 使用本次 fetch 的结果，避免自定义 refspec 下 origin/<branch> 过期。
+    if [[ ${DRY_RUN} -eq 1 ]]; then
+      up_sha="$(git -C "${dir}" rev-parse --verify "refs/remotes/origin/${branch}^{commit}" 2>/dev/null || true)"
+    else
+      up_sha="$(git -C "${dir}" rev-parse --verify 'FETCH_HEAD^{commit}' 2>/dev/null || true)"
+    fi
+    if [[ -z "${up_sha}" ]]; then warn "${repo}: 找不到 origin/${branch}"; failed=$((failed + 1)); continue; fi
+    if [[ "${head_sha}" == "${up_sha}" ]]; then ok "${repo}: 已是最新（${head_sha:0:7}）"; latest=$((latest + 1)); continue; fi
 
-    changed=$((changed + 1))
     warn "${repo}: ${head_sha:0:7} → ${up_sha:0:7}"
-    git -C "${dir}" log --oneline -1 "origin/${branch}" | sed 's/^/      /'
-    git -C "${dir}" diff --stat HEAD "origin/${branch}" 2>/dev/null | tail -1 | sed 's/^/      /'
+    git -C "${dir}" log --oneline -1 "${up_sha}" | sed 's/^/      /'
+    git -C "${dir}" diff --stat HEAD "${up_sha}" 2>/dev/null | tail -1 | sed 's/^/      /'
 
-    if [[ ${apply} -eq 1 ]]; then
-      if [[ "${kind}" == "skill" ]]; then
-        run git -C "${dir}" reset --hard "origin/${branch}" >/dev/null
-        ok "${repo}: 已重置到上游（skill 源是只读的，上游改写历史也照这个处理）"
+    if [[ ${apply} -eq 0 || ${DRY_RUN} -eq 1 ]]; then
+      pending=$((pending + 1))
+      continue
+    fi
+    if [[ "${kind}" == "skill" ]]; then
+      if git -C "${dir}" reset --hard "${up_sha}" >/dev/null; then
+        ok "${repo}: 已重置到上游（skill 源按约定不保留本地提交）"
+        updated=$((updated + 1))
       else
-        if run git -C "${dir}" pull --ff-only --quiet origin "${branch}"; then
-          ok "${repo}: 已 fast-forward"
-        else
-          warn "${repo}: 不能 fast-forward（上游改写了历史，或本地有分叉）——手动处理"
-        fi
+        warn "${repo}: reset 失败"
+        failed=$((failed + 1))
+      fi
+    else
+      if git -C "${dir}" merge --ff-only --quiet "${up_sha}"; then
+        ok "${repo}: 已 fast-forward"
+        updated=$((updated + 1))
+      else
+        warn "${repo}: 不能 fast-forward（上游改写了历史，或本地有分叉）——手动处理"
+        failed=$((failed + 1))
       fi
     fi
   done
 
   printf '\n'
-  if [[ ${changed} -eq 0 ]]; then
-    ok "全部已是最新"
-  elif [[ ${apply} -eq 1 ]]; then
-    ok "已处理 ${changed} 个仓库"
-  else
-    warn "${changed} 个仓库可更新——确认后跑 update --apply"
-  fi
+  printf '  最新 %s，已更新 %s，待更新 %s，跳过 %s，失败 %s\n' "${latest}" "${updated}" "${pending}" "${skipped}" "${failed}"
+  if [[ ${DRY_RUN} -eq 1 ]]; then skip "dry-run 仅对比已有远端引用，未 fetch、未应用"; fi
+  [[ ${failed} -eq 0 ]]
 }
 
 cmd_init() {
@@ -320,7 +341,7 @@ cmd_remove() {
 }
 
 cmd_check() {
-  local name url branch repo repo_dir rel resolved target_dir
+  local row name url branch kind repo repo_dir rel resolved target_dir
   local skill_dir skill_md fm_name desc problems=0
   local seen_names=" " s linked_target linked_real linked_repo linked_rev
 
@@ -393,11 +414,12 @@ cmd_check() {
       problems=$((problems + 1))
       continue
     fi
-    fm_name="$(sed -n '2,/^---$/p' "${skill_md}" | grep -m1 '^name:' | sed 's/^name:[[:space:]]*//')"
-    desc="$(sed -n '2,/^---$/p' "${skill_md}" | grep -m1 '^description:' | sed 's/^description:[[:space:]]*//')"
+    fm_name="$(awk 'NR == 1 {next} /^---$/ {exit} /^name:/ {sub(/^name:[[:space:]]*/, ""); print; exit}' "${skill_md}")"
+    desc="$(awk 'NR == 1 {next} /^---$/ {exit} /^description:/ {sub(/^description:[[:space:]]*/, ""); print; exit}' "${skill_md}")"
+    if [[ -z "${fm_name}" ]]; then warn "${name}: 缺少 name"; problems=$((problems + 1)); fi
     if [[ -z "${desc}" ]]; then warn "${name}: 缺少 description（不会被加载）"; problems=$((problems + 1)); fi
     if [[ -n "${fm_name}" && "${fm_name}" != "${name}" ]]; then warn "${name}: frontmatter name 是 ${fm_name}，与目录名不一致"; fi
-    case "${seen_names}" in
+    case "${fm_name:+${seen_names}}" in
       *" ${fm_name} "*) warn "skill 名冲突：${fm_name}"; problems=$((problems + 1)) ;;
       *) if [[ -n "${fm_name}" ]]; then seen_names="${seen_names}${fm_name} "; fi ;;
     esac
@@ -421,9 +443,8 @@ cmd_check() {
   if [[ ! -f "${MANIFEST}" ]]; then
     warn "缺 repos.tsv：cp repos.example.tsv repos.tsv 之后再跑一次"
   else
-    while IFS=$'\t' read -r name url branch || [[ -n "${name:-}" ]]; do
-      name="${name%%#*}"
-      name="$(echo "${name}" | tr -d '[:space:]')"
+    while IFS= read -r row || [[ -n "${row}" ]]; do
+      parse_manifest_row "${row}"
       [[ -z "${name}" ]] && continue
       if [[ -d "${REPOS_DIR}/${name}" ]]; then ok "${name}: 已就位"; else skip "${name}: 尚未克隆"; fi
     done < "${MANIFEST}"

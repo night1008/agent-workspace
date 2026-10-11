@@ -65,6 +65,6 @@ subagent({ agent: "worker", cwd: "repos/<repo>", isolation: "worktree", async: t
 
 坑（上游踩过）：`code-review` 中途跑会成循环；worktree 里 gitignored 的 fixture / 本地库 / 凭据会**静默 skip 报绿**；implementer 不自动继承 `tdd`。
 
-## 已知差异（软链的上游改不了）
+## 已知差异
 
 上游 skill 之间用 `Call the Skill tool with "tdd"` 交接，这是它自己的约定（上游 CHANGELOG #878）。本环境没有 Skill 工具，**读作「读 `.agents/skills/<name>/SKILL.md` 并执行」**。

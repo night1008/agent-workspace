@@ -29,20 +29,25 @@ printf 'mattpocock-skills\thttps://github.com/mattpocock/skills\tmain\tskill\n' 
 - 更新用 `update`（先只看，再应用）：
 
 ```bash
-./scripts/workspace.sh update            # 只读：fetch 后对比本地与上游，列出差异
+./scripts/workspace.sh update            # fetch 后对比本地与上游，不改工作树（会更新 Git 元数据）
 ./scripts/workspace.sh update --apply    # 应用：软链目标跟着变
 ```
 
-`repos.tsv` 的第四列标仓库类型：留空 / `repo` 是业务仓库，完整克隆（要历史），更新走 `pull --ff-only`；`skill` 是 skill 源，只读工作树，所以 `clone` 用 `--depth 1`（`mattpocock-skills` 这样是 1.5M 而不是 3.2M），更新走 `fetch --depth 1` + `reset --hard`。
+`repos.tsv` 的第四列标仓库类型：留空 / `repo` 是业务仓库，完整克隆（要历史），更新走 `fetch` + `merge --ff-only`；`skill` 是 skill 源，只读工作树，所以 `clone` 用 `--depth 1`（`mattpocock-skills` 这样是 1.5M 而不是 3.2M），更新走 `fetch --depth 1` + `reset --hard`。
 
-**为什么 skill 源用 reset 而不是 pull**：上游会不定期改写历史（squash 发布），浅克隆下 `pull` 会直接报 `Not possible to fast-forward`——这不是异常，是常态。skill 源对我们只读（软链改不了正文），所以 reset 是安全的；业务仓库则一律只 `pull --ff-only`，绝不 reset。两边有未提交改动时 `update` 会跳过并提醒。
+**为什么 skill 源用 reset 而不是 pull**：上游会不定期改写历史（squash 发布），浅克隆下 `pull` 会直接报 `Not possible to fast-forward`——这不是异常，是常态。skill 源按约定不保留本地修改或提交；reset 会放弃本地提交，让当前分支指向上游；业务仓库则一律只 `merge --ff-only`，绝不 reset。两边有未提交改动时 `update` 会跳过并提醒。
+
+`update --apply` 要求当前分支与清单目标分支一致；分支不一致或 detached HEAD 会拒绝应用。分支列留空时使用当前分支。应用的是本次 fetch 得到的确切提交，不会再次拉取。
+
+汇总分别列出最新、已更新、待更新、跳过、失败的数量。fetch、分支检查或应用失败时，继续处理其他仓库，最终返回非零退出码；脏工作树和非 Git 目录计为跳过。`update --dry-run` 不执行 fetch，只能比较本地已有的远端引用。
+
 
 为什么不用复制：软链只有一份真身，`git pull` 就是更新，也不会出现「仓库里是新版、全局是旧版」这种漂移。代价是**软链必须指向工作区内**（相对路径），所以上游仓库要 clone 到 `repos/` 并有 `repos.tsv` 登记——否则别人 clone 这个工作区只会拿到一堆坏链，`check` 会把它们报出来。
 
 两个注意点：
 
 - 上游 skill 的内容是**只读**的：要改就得改 `repos/<repo>` 里的文件（那就变成你对那个仓库的改动），或者在 `.agents/skills/` 里自研一个同名 skill。
-- 上游 SKILL.md 里的调用写法是**上游自己的约定**（mattpocock/skills 的 CHANGELOG 写明：把 10 个 skill 的跨 skill 调用统一改成「call the Skill tool」，不用 `/skill` 式散文），在 pi / Codex 里语义不对，而软链改不了。所以 `grill-me` 这种只有一行正文的转发壳不链——它本来就依赖 `grilling`（上游文档也写了：单独装 `grill-me` 会没反应），用 `/skill:grilling` 就行。
+- 上游 SKILL.md 里的调用写法是**上游自己的约定**（mattpocock/skills 的 CHANGELOG 写明：把 10 个 skill 的跨 skill 调用统一改成「call the Skill tool」，不用 `/skill` 式散文），在 pi / Codex 里语义不对，而直接编辑软链中的正文会修改上游 checkout。所以 `grill-me` 这种只有一行正文的转发壳不链——它本来就依赖 `grilling`（上游文档也写了：单独装 `grill-me` 会没反应），用 `/skill:grilling` 就行。
 
 ### 新增共享规则
 
@@ -119,3 +124,10 @@ mv /tmp/repos.tsv.bak repos.tsv                 # 本机那份放回来（已在
 
 第三方内容在本仓库一律以**软链订阅**的形式存在：本体在 `repos/`，`.agents/skills/` 只有相对软链，升级 = `git -C repos/<repo> pull`。
 另一条路是**复制自持**（`cp -R` 进 `.agents/skills/`）：能改正文，代价是失去升级能力。上游自己也提供这两种形态（plugin 订阅 vs 安装器复制进项目）。
+
+## 验证脚手架
+
+```bash
+bash -n scripts/workspace.sh
+./scripts/workspace.sh check
+```
