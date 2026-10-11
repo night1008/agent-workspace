@@ -14,7 +14,7 @@ git remote add origin <你自己的远端>          # 可选
 cp repos.example.tsv repos.tsv   # 本机清单，不进 git（缺文件时 init 也会自动生成）
 $EDITOR repos.tsv                # name <TAB> url <TAB> branch <TAB> kind（kind 留空 = 业务仓库，skill = skill 源）
 ./scripts/workspace.sh init      # 克隆 repos.tsv 里的仓库 + 自检，幂等
-pi                            # 或 claude / codex / agy，都在这个目录启动
+pi                               # 或 claude / codex / agy，都在这个目录启动
 ```
 
 想要不带模板历史的干净副本：`gh repo create --template night1008/agent-workspace --private`（需装 `gh` 并登录 + 模板仓库勾了 Template repository），代价是以后只能靠文件对比拿更新，两种方式都写在 `.agents/handbook/usage.md` 的「拿脚手架自身的更新」里。
@@ -35,8 +35,4 @@ pi                            # 或 claude / codex / agy，都在这个目录启
 
 任何命令都可加 `--dry-run`。
 
-## 进一步阅读
-
-**用这个工作区**（日常操作）：[`usage.md`](.agents/handbook/usage.md) — 新增 / 引入 skill、加规则、接仓库、清理示例内容；[`pitfalls.md`](.agents/handbook/pitfalls.md) — 已知的坑。
-
-**改脚手架本身**（改目录结构、加载规则、方案取舍时才需要）：[`design.md`](.agents/handbook/design.md) — 三层资源模型、四个 CLI 从哪读、否决过哪些方案；各 CLI 的官方依据也在它末尾。
+日常操作与设计说明：`.agents/handbook/`（`usage.md` 加 skill / 接仓库、`pitfalls.md` 坑、`design.md` 只在改脚手架时看）。
