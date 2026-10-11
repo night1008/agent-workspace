@@ -37,8 +37,6 @@ pi                            # 或 claude / codex / agy，都在这个目录启
 
 ## 进一步阅读
 
-- [`handbook/usage.md`](handbook/usage.md) — 日常操作：新增 / 引入 skill、加规则、接仓库、清理示例内容
-- [`handbook/design.md`](handbook/design.md) — 目录结构、三层资源模型、四个 CLI 的加载规则、方案取舍
-- [`handbook/pitfalls.md`](handbook/pitfalls.md) — 已知的坑
+**用这个工作区**（日常操作）：[`usage.md`](handbook/usage.md) — 新增 / 引入 skill、加规则、接仓库、清理示例内容；[`pitfalls.md`](handbook/pitfalls.md) — 已知的坑。
 
-各 CLI 的官方依据（skills 路径、指令文件优先级）在 `handbook/design.md` 末尾。
+**改脚手架本身**（改目录结构、加载规则、方案取舍时才需要）：[`design.md`](handbook/design.md) — 三层资源模型、四个 CLI 从哪读、否决过哪些方案；各 CLI 的官方依据也在它末尾。
