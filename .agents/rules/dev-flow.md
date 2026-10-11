@@ -32,7 +32,7 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 | **编排型**（只能手动调，会写文件） | `setup-matt-pocock-skills`、`grill-with-docs`、`to-spec`、`to-tickets`、`implement-spec` | **cwd 必须是目标仓库**：它们读写 `docs/agents/`、`GLOSSARY.md`、`docs/adr/`、`.scratch/` 这些相对路径 |
 | **纪律型**（模型也会自动用，是方法论） | `tdd`、`code-review`、`domain-modeling`、`grilling` | 任何 cwd 都能用 |
 
-所以：**一律在工作区根启动会话**（根是唯一启动点，见 `handbook/design.md`）。上表那列的相对路径在根会话里的基准是**会话 cwd**，要读成 `repos/<repo>/` 前缀，否则配置和文档落到工作区根，配错对象。
+所以：**一律在工作区根启动会话**（根是唯一启动点，见 `.agents/handbook/design.md`）。上表那列的相对路径在根会话里的基准是**会话 cwd**，要读成 `repos/<repo>/` 前缀，否则配置和文档落到工作区根，配错对象。
 
 **别用 `cd repos/<repo> && pi` 绕过**：各家的 skills 向上扫描遇仓库根即停，进去以后这 9 个只剩用户级那份 `grilling` 可达。
 

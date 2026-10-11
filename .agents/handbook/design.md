@@ -13,9 +13,9 @@ agent-workspace/
 ├── repos.example.tsv      # 仓库清单模板（name <TAB> url <TAB> branch <TAB> kind）；本机 repos.tsv 由它生成，不进 git
 ├── .agents/
 │   ├── skills/            # 跨仓库共享 skills（每个子目录一个 SKILL.md；第三方用相对软链）
-│   └── rules/             # 跨仓库规则，按需读取，永远不会自动进上下文
+│   ├── rules/             # 跨仓库规则，按需读取，永远不会自动进上下文
+│   └── handbook/          # 面向人的脚手架说明：用法、设计（本文件）、坑
 ├── .claude/skills         # -> ../.agents/skills（Claude Code 只认这个位置）
-├── handbook/              # 本目录：用法、设计说明、已知的坑
 ├── repos/                 # 外部仓库的本地 checkout：业务仓库 + skill 源仓库（内容不入本仓库版本控制）
 └── scripts/workspace.sh   # init / clone / check / new / add / remove / update
 ```
@@ -76,11 +76,11 @@ agent-workspace/
 
 | 规则 | 为什么 |
 | --- | --- |
-| `README.md`、`handbook/` | 面向人的脚手架说明，只有改工作区自身时才需要；默认读掉只是白花上下文，定位也和根 `AGENTS.md` 重复 |
+| `README.md`、`.agents/handbook/` | 面向人的脚手架说明，只有改工作区自身时才需要；默认读掉只是白花上下文，定位也和根 `AGENTS.md` 重复 |
 | `!repos/*` | 反向白名单。根 `.gitignore` 里的 `repos/*` 会让 rg / fd **静默**跳过整个 `repos/`——从根搜索看不到任何业务代码，而根正是唯一启动点。`.ignore` 优先级高于 `.gitignore`，正好只修搜索层 |
 | `.git/` | pi 的 `grep` / `find` 带 `--hidden`，不挡会连 git 内部一起翻；嵌套仓库各自的 `.git` 同理 |
 
-为什么前两条不用 `.gitignore` 表达：`README.md`、`handbook/` 都是**已跟踪**文件，写进 `.gitignore` 语义不对；而且只有 `.ignore` 能做反向白名单——改 `.gitignore` 本身只会让 git 开始报未跟踪。`.ignore` 不参与 git，改它不影响提交与工作区状态。
+为什么前两条不用 `.gitignore` 表达：`README.md`、`.agents/handbook/` 都是**已跟踪**文件，写进 `.gitignore` 语义不对；而且只有 `.ignore` 能做反向白名单——改 `.gitignore` 本身只会让 git 开始报未跟踪。`.ignore` 不参与 git，改它不影响提交与工作区状态。
 
 嵌套仓库自己的 `.gitignore` 不受影响（实测：探针仓库里的 `node_modules/`、`build/` 照常被排除）。
 

@@ -11,7 +11,7 @@
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
 | `repos.example.tsv` | 仓库清单模板（name / url / branch / kind 四列）；本机清单 `repos.tsv` 由它生成，不进 git |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
-| `README.md`、`handbook/` | 面向人的脚手架说明；只在改工作区自身时读（`.ignore` 让 rg / fd 搜不到它们） |
+| `README.md`、`.agents/handbook/` | 面向人的脚手架说明；只在改工作区自身时读（`.ignore` 让 rg / fd 搜不到它们） |
 
 ## 开工
 

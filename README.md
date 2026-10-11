@@ -17,7 +17,7 @@ $EDITOR repos.tsv                # name <TAB> url <TAB> branch <TAB> kind（kind
 pi                            # 或 claude / codex / agy，都在这个目录启动
 ```
 
-想要不带模板历史的干净副本：`gh repo create --template night1008/agent-workspace --private`（需装 `gh` 并登录 + 模板仓库勾了 Template repository），代价是以后只能靠文件对比拿更新，两种方式都写在 `handbook/usage.md` 的「拿脚手架自身的更新」里。
+想要不带模板历史的干净副本：`gh repo create --template night1008/agent-workspace --private`（需装 `gh` 并登录 + 模板仓库勾了 Template repository），代价是以后只能靠文件对比拿更新，两种方式都写在 `.agents/handbook/usage.md` 的「拿脚手架自身的更新」里。
 
 接手一个已存在的工作区就两步：`git clone <工作区 URL> <目录>` → `./scripts/workspace.sh init`（`repos.tsv` 不进 git，`init` 会用 `repos.example.tsv` 生成本机那份；团队共享的仓库清单写进 example，它才跟着 git 走）。
 从别人的 fork 复制时，把上面的 `night1008/agent-workspace` 换成你正在看的那份。
@@ -37,6 +37,6 @@ pi                            # 或 claude / codex / agy，都在这个目录启
 
 ## 进一步阅读
 
-**用这个工作区**（日常操作）：[`usage.md`](handbook/usage.md) — 新增 / 引入 skill、加规则、接仓库、清理示例内容；[`pitfalls.md`](handbook/pitfalls.md) — 已知的坑。
+**用这个工作区**（日常操作）：[`usage.md`](.agents/handbook/usage.md) — 新增 / 引入 skill、加规则、接仓库、清理示例内容；[`pitfalls.md`](.agents/handbook/pitfalls.md) — 已知的坑。
 
-**改脚手架本身**（改目录结构、加载规则、方案取舍时才需要）：[`design.md`](handbook/design.md) — 三层资源模型、四个 CLI 从哪读、否决过哪些方案；各 CLI 的官方依据也在它末尾。
+**改脚手架本身**（改目录结构、加载规则、方案取舍时才需要）：[`design.md`](.agents/handbook/design.md) — 三层资源模型、四个 CLI 从哪读、否决过哪些方案；各 CLI 的官方依据也在它末尾。

@@ -3,7 +3,7 @@
 
 # 面向人的脚手架说明（入口、用法、设计、坑）：只在改工作区自身时才需要，平时别读
 README.md
-handbook/
+.agents/handbook/
 
 # .gitignore 里的 repos/* 会让 rg / fd 静默跳过整个 repos/。
 # .ignore 优先级高于 .gitignore，这里反向白名单把跨仓库搜索找回来

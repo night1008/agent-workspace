@@ -106,7 +106,7 @@ mv /tmp/repos.tsv.bak repos.tsv                 # 本机那份放回来（已在
 
 ## 有哪些是示例（想清空就清空）
 
-脚手架本身只有六件东西：`AGENTS.md`（+ `CLAUDE.md` 软链）、`repos.example.tsv`、`.agents/{rules,skills}/`、`.claude/skills`、`scripts/workspace.sh`。其余都是实例内容：
+脚手架本身只有六件东西：`AGENTS.md`（+ `CLAUDE.md` 软链）、`repos.example.tsv`、`.agents/{rules,skills,handbook}/`、`.claude/skills`、`scripts/workspace.sh`。其余都是实例内容：
 
 | 路径 | 是什么 | 不要了就 |
 | --- | --- | --- |
