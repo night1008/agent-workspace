@@ -9,4 +9,3 @@
 
 # 示例：skill 源仓库（kind=skill）。删掉这些行 + .agents/skills 里对应的软链，就得到干净骨架。
 mattpocock-skills	https://github.com/mattpocock/skills	main	skill
-waza	https://github.com/tw93/Waza.git	main	skill

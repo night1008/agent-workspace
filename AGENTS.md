@@ -23,6 +23,8 @@
 | --- | --- |
 | 做需求 / 设计 / 实现 / 测试（任何功能开发） | `.agents/rules/dev-flow.md` |
 | 写或改 Go 代码 | `.agents/rules/go.md` |
+| 用中文回复或写中文文本 | `.agents/rules/chinese.md` |
+| 用户输入英文时提供表达建议 | `.agents/rules/english.md` |
 | 写提示词、或评审一份需求 / 提示词 | `.agents/rules/prompt-writing.md` |
 | 动手做一个非平凡改动之前 | `.agents/rules/before-implementing.md` |
 | 新增一条跨仓库规则 | `.agents/rules/_template.md` |

@@ -9,6 +9,9 @@ repos/*
 .pi/npm/
 .pi/git/
 
+# 临时票据与编排状态
+.scratch/
+
 .playwright-cli
 
 # 本机仓库清单（由 repos.example.tsv 生成，改它别改 example）
