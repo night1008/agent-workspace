@@ -9,5 +9,7 @@ repos/*
 .pi/npm/
 .pi/git/
 
+.playwright-cli
+
 # 本机仓库清单（由 repos.example.tsv 生成，改它别改 example）
 repos.tsv
