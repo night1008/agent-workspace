@@ -32,5 +32,6 @@
 - 跨仓库的规则只写在 `.agents/rules/`；某个仓库自己的约定只写在该仓库的 `AGENTS.md`。同一条含义只保留一处。
 - 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链进来（不复制，更新靠 `git -C repos/<repo> pull`）。两者都会被 pi、Codex、Claude Code 读到（`.claude/skills` 是指向 `.agents/skills` 的软链）。
 - 仓库内的改动在仓库内提交：`git -C repos/<repo> ...`。本仓库的提交只包含工作区文件，`repos/*` 已 gitignore。
+- 代码自解释优先：严禁添加复述代码行为、翻译标识符或拆解步骤的显见注释；注释仅允许用于记录业务背景、设计决策或规避缺陷的非直观逻辑。
 - 让你分析时只给分析：写代码等我明确说动手。
 - 回复用中文，commit message 用中文（Conventional Commits 的类型前缀保留英文）。
