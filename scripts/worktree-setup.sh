@@ -47,7 +47,7 @@ step "1/3" "定位主 checkout"
 main="$(main_checkout)" || die "[1/3] 定位主 checkout 失败：${WS} 不是 git 仓库"
 ws_phys="$(cd "${WS}" && pwd -P)"
 if [[ "${main}" == "${ws_phys}" ]]; then
-  ok "当前目录就是主 checkout，无需引导：${main}"
+  ok "当前目录就是主 checkout，无需补齐：${main}"
   exit 0
 fi
 ok "主 checkout：${main}"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# orca-dispatch.sh —— Orca 编排薄封装：Run / Task / Dispatch 的固定步骤
+# orca-dispatch.sh —— 把 Orca 编排里的固定步骤包成命令：Run / Task / Dispatch
 #
 # 用法：
 #   orca-dispatch.sh init <feature> [--objective <text>]
