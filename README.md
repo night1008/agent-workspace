@@ -24,20 +24,9 @@ pi                               # 或 claude / codex / agy，都在这个目录
 
 ## 开发一个需求
 
-会话始终在工作区根开，别 `cd repos/<repo> && pi`（进去只剩用户级 skill）。
+工作区根开会话，别进 `repos/<repo>`。细节见 `.agents/rules/dev-flow.md`。
 
 ```text
-只有一个模糊想法
-  ↓ /skill:grill-with-docs      追问到能验收，术语进 GLOSSARY、决策进 ADR
-  ↓ /skill:to-spec             锁成规格，进 issue tracker
-  ↓ /skill:to-tickets          拆成 tracer-bullet 票据，带阻塞边
-  ↓ 派 worker 实现             或 /skill:implement-spec；主会话只留指针
-  ↓ 独立验收                   reviewer 给 pass / block，不过就回流
-  ↓ 提交                       一个仓库一个提交
+模糊需求 → /skill:grill-with-docs → /skill:to-spec → /skill:to-tickets
+        → 派 worker 实现（或 /skill:implement-spec）→ 独立验收 → 业务仓库内提交
 ```
-
-三条边界：
-
-- **产物不进业务仓库**。票据、brief、report、verdict 落 `.scratch/<feature>/`；`GLOSSARY.md`、`docs/adr/`、tracker 配置落 `.agents/repos/<repo>/`。业务仓库只留代码和团队自己的文件；业务变动让团队的 `AGENTS.md` 过时就改它，随业务一起提交。
-- **收尾必跑两件事**：`./scripts/workspace.sh check`（抓漏进业务仓库的流程产物）与 `git -C repos/<repo> add <显式路径>`（别用 `-A`）。
-- **小改不走这套**。改名、typo、20 行以内且只有一种写法，直接做。
