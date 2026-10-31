@@ -8,6 +8,8 @@
 #   ./scripts/workspace.sh add <repo> <repo 内路径> [--name <skill>]
 #                                             把 repos/<repo> 里的 skill 软链进 .agents/skills/
 #   ./scripts/workspace.sh remove <skill>     移除该软链（实体目录不动）
+#   ./scripts/workspace.sh repo-init <repo> [--tracker github|gitlab|local] [--domain single|multi]
+#                                             生成 .agents/repos/<repo>/ 的流程文档（tracker、domain、AGENTS.md）
 #   ./scripts/workspace.sh update [repo...]   对比本地与上游（fetch 更新 Git 元数据）
 #   ./scripts/workspace.sh update --apply     拉到上游最新（skill 源 reset，业务仓库只 fast-forward）
 #
@@ -172,6 +174,12 @@ cmd_clone() {
     if [[ -d "${target}" ]]; then skip "${name}: 已存在"; continue; fi
     clone_repo "${url}" "${branch}" "${kind}" "${target}"
     ok "${name}: 已克隆${kind:+（kind=${kind}）}"
+    if [[ "${kind}" == "skill" ]]; then
+      skip "${name}: skill 源，不生成个人流程文档"
+    else
+      repo_docs_init "${name}" "" "single" quiet \
+        || warn "${name}: 个人流程文档跳过（找不到种子模板）"
+    fi
   done < "${MANIFEST}"
 }
 
@@ -266,6 +274,7 @@ cmd_init() {
   # dry-run 下清单没真的生成，后面的步骤跳过（否则 clone 会因缺清单报错）
   if [[ -f "${MANIFEST}" ]]; then
     cmd_clone
+    converge_repo_docs
     cmd_check
   fi
   printf '\n'
@@ -344,6 +353,7 @@ cmd_check() {
   local row name url branch kind repo repo_dir rel resolved target_dir
   local skill_dir skill_md fm_name desc problems=0
   local seen_names=" " s linked_target linked_real linked_repo linked_rev
+  local leak leak_n=0
 
   title "工作区"
   if [[ -s "${WS}/AGENTS.md" ]]; then ok "AGENTS.md 非空"; else warn "AGENTS.md 为空"; problems=$((problems + 1)); fi
@@ -439,6 +449,21 @@ cmd_check() {
     fi
   done < <(list_repo_dirs)
 
+  title "业务仓库里的流程产物"
+  while read -r repo; do
+    repo_dir="${REPOS_DIR}/${repo}"
+    [[ -e "${repo_dir}/.git" ]] || continue
+    while IFS= read -r leak || [[ -n "${leak}" ]]; do
+      case "${leak}" in
+        .scratch/*|GLOSSARY.md|GLOSSARY-MAP.md|docs/adr/*|docs/agents/*|AGENTS.md|CLAUDE.md)
+          warn "${repo}: 未提交的 ${leak}（个人流程产物应落 .agents/repos/${repo}/ 或 .scratch/）"
+          leak_n=$((leak_n + 1)) ;;
+      esac
+    done < <({ git -C "${repo_dir}" ls-files --others --exclude-standard
+               git -C "${repo_dir}" diff --cached --name-only --diff-filter=A; } 2>/dev/null | sort -u)
+  done < <(list_repo_dirs)
+  if [[ ${leak_n} -eq 0 ]]; then ok "无个人流程产物落进业务仓库"; else problems=$((problems + leak_n)); fi
+
   title "repos.tsv 与磁盘"
   if [[ ! -f "${MANIFEST}" ]]; then
     warn "缺 repos.tsv：cp repos.example.tsv repos.tsv 之后再跑一次"
@@ -446,7 +471,12 @@ cmd_check() {
     while IFS= read -r row || [[ -n "${row}" ]]; do
       parse_manifest_row "${row}"
       [[ -z "${name}" ]] && continue
-      if [[ -d "${REPOS_DIR}/${name}" ]]; then ok "${name}: 已就位"; else skip "${name}: 尚未克隆"; fi
+      if [[ -d "${REPOS_DIR}/${name}" ]]; then
+        ok "${name}: 已就位"
+        if [[ "${kind}" != "skill" && ! -d "${WS}/.agents/repos/${name}" ]]; then
+          skip "${name}: 无个人流程文档（./scripts/workspace.sh repo-init ${name}）"
+        fi
+      else skip "${name}: 尚未克隆"; fi
     done < "${MANIFEST}"
   fi
 
@@ -486,6 +516,139 @@ EOF
   echo "接着跑：./scripts/workspace.sh check"
 }
 
+# ---------------------------------------------------------------- repo-init
+
+# 上游 setup 技能的种子模板目录（任意 skill 源里找到一份就行）
+template_dir() {
+  local d
+  for d in "${REPOS_DIR}"/*/skills/engineering/setup-matt-pocock-skills; do
+    [[ -d "${d}" ]] || continue
+    printf '%s\n' "${d}"
+    return 0
+  done
+  return 1
+}
+
+# 从 origin 的 URL 猜 issue tracker，没远端就用本地 markdown
+# 注意：GitLab 自托管 / GitHub Enterprise 只能靠 --tracker 指定
+detect_tracker() {
+  local url
+  url="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
+  case "${url}" in
+    *github.com*) printf 'github\n' ;;
+    *gitlab*)     printf 'gitlab\n' ;;
+    *)            printf 'local\n' ;;
+  esac
+}
+
+repo_init_header() { # <repo> —— 模板写的是仓库根相对路径，用这段声明改写落点
+  printf '> 个人流程：领域文档在 `.agents/repos/%s/`，票据与产物在工作区根 `.scratch/`；下文写作「仓库根」或结构图里的 `/` 时，按这两处理解。\n\n' "$1"
+}
+
+# repo_docs_init <repo> [tracker] [domain] [quiet]
+# 写 .agents/repos/<repo>/ 的流程文档；模板缺失时返回 1（不 die），由调用方决定是否致命
+repo_docs_init() {
+  local repo="$1" tracker="${2:-}" domain="${3:-single}" quiet="${4:-}"
+  local repo_dir="${REPOS_DIR}/${repo}" tpl dir agents_dir tracker_line domain_line f target source
+  [[ -n "${tracker}" ]] || tracker="$(detect_tracker "${repo_dir}")"
+  dir="${WS}/.agents/repos/${repo}"
+  agents_dir="${dir}/docs/agents"
+  tpl="$(template_dir)" || return 1
+
+  if [[ -z "${quiet}" ]]; then
+    title "生成 ${repo} 的个人流程文档"
+    skip "tracker=${tracker} domain=${domain} 模板=${tpl#"${WS}"/}"
+  fi
+
+  run mkdir -p "${agents_dir}"
+  for f in "issue-tracker:${tpl}/issue-tracker-${tracker}.md" "domain:${tpl}/domain.md"; do
+    target="${agents_dir}/${f%%:*}.md"
+    source="${f#*:}"
+    if [[ -f "${target}" ]]; then
+      [[ -n "${quiet}" ]] || skip "docs/agents/${f%%:*}.md 已存在，保留不动"
+      continue
+    fi
+    if [[ ${DRY_RUN} -eq 0 ]]; then
+      { repo_init_header "${repo}"; cat "${source}"; } > "${target}"
+    fi
+    ok "${repo}: docs/agents/${f%%:*}.md（来自 $(basename "${source}")）"
+  done
+
+  case "${tracker}" in
+    github) tracker_line='GitHub issues（`gh issue create`）见 `docs/agents/issue-tracker.md`' ;;
+    gitlab) tracker_line='GitLab issues（`glab issue create`）见 `docs/agents/issue-tracker.md`' ;;
+    local)  tracker_line='本地 markdown：`.scratch/<feature>/issues/NN-slug.md`，见 `docs/agents/issue-tracker.md`' ;;
+  esac
+  case "${domain}" in
+    single) domain_line='single-context：`GLOSSARY.md` + `docs/adr/` 都在本目录，见 `docs/agents/domain.md`' ;;
+    multi)  domain_line='multi-context：`GLOSSARY-MAP.md` 在本目录，指向各上下文的 `GLOSSARY.md`，见 `docs/agents/domain.md`' ;;
+  esac
+
+  if [[ -f "${dir}/AGENTS.md" ]]; then
+    [[ -n "${quiet}" ]] || skip "AGENTS.md 已存在，保留不动"
+  else
+    if [[ ${DRY_RUN} -eq 0 ]]; then
+      cat > "${dir}/AGENTS.md" <<EOF
+# ${repo}
+
+个人编排偏好与流程指针。业务事实（构建、测试、目录约定）在 \`repos/${repo}/AGENTS.md\`，那份是团队资产，改它随业务提交。产物落点见 \`.agents/rules/dev-flow.md\`。
+
+## Agent skills
+
+- Issue tracker：${tracker_line}
+- Domain docs：${domain_line}
+EOF
+    fi
+    ok "${repo}: AGENTS.md"
+  fi
+
+  if [[ -z "${quiet}" ]]; then
+    echo
+    echo "上下文目录：.agents/${dir#"${WS}/.agents/"}"
+    echo "它在工作区仓库里，正常 git add 提交；业务仓库（repos/${repo}）不该出现这些文件。"
+    echo "校验：./scripts/workspace.sh check"
+  fi
+}
+
+cmd_repo_init() {
+  local repo="" tracker="" domain="single"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tracker) tracker="${2:-}"; shift 2 ;;
+      --domain)  domain="${2:-}"; shift 2 ;;
+      -*) die "未知选项：$1" ;;
+      *)  [[ -z "${repo}" ]] || die "多余参数：$1"; repo="$1"; shift ;;
+    esac
+  done
+  [[ -n "${repo}" ]] || die "用法: workspace.sh repo-init <repo> [--tracker github|gitlab|local] [--domain single|multi]"
+  case "${domain}" in
+    single|multi) ;;
+    *) die "--domain 只能是 single / multi：${domain}" ;;
+  esac
+  [[ -d "${REPOS_DIR}/${repo}" ]] || die "repos/${repo} 不存在：先 ./scripts/workspace.sh clone"
+  case "${tracker}" in
+    ""|github|gitlab|local) ;;
+    *) die "--tracker 只能是 github / gitlab / local：${tracker}" ;;
+  esac
+
+  repo_docs_init "${repo}" "${tracker}" "${domain}" \
+    || die "找不到种子模板：repos/*/skills/engineering/setup-matt-pocock-skills（先加 mattpocock-skills）"
+}
+
+# 给已存在但缺个人流程文档的业务仓库补齐（clone 只覆盖新克隆的）
+converge_repo_docs() {
+  local row name url branch kind
+  [[ -f "${MANIFEST}" ]] || return 0
+  while IFS= read -r row || [[ -n "${row}" ]]; do
+    parse_manifest_row "${row}"
+    [[ -z "${name}" || "${kind}" == "skill" ]] && continue
+    [[ -d "${REPOS_DIR}/${name}" ]] || continue
+    [[ -d "${WS}/.agents/repos/${name}/docs/agents" ]] && continue
+    repo_docs_init "${name}" "" "single" quiet \
+      || warn "${name}: 跳过（找不到种子模板）"
+  done < "${MANIFEST}"
+}
+
 # ---------------------------------------------------------------- main
 
 cmd="${1:-help}"
@@ -499,6 +662,7 @@ case "${cmd}" in
   update) cmd_update "$@" ;;
   add)    cmd_add "$@" ;;
   remove) cmd_remove "$@" ;;
+  repo-init) cmd_repo_init "$@" ;;
   help|-h|--help) usage ;;
   *) die "未知命令：${cmd}（试试 help）" ;;
 esac
