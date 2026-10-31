@@ -63,6 +63,8 @@ printf 'your-service\tgit@your-host:your-org/your-service.git\tmain\n' >> repos.
 
 也可以直接 `git clone <url> repos/<name>`。`repos.tsv` 供 `clone` 和 `add`（自动拉取缺失的 skill 源）使用，不影响仓库里的其他逻辑。
 
+`clone` 拉到业务仓库后会顺手生成 `.agents/repos/<name>/`（tracker 按 origin 的 URL 猜，无远端就是 `local`；`kind=skill` 的不生成）。要换 tracker 或补已经存在的仓库，用 `./scripts/workspace.sh repo-init <name> --tracker github`；`init` 会把所有缺文档的业务仓库一次补齐。
+
 `repos.tsv` 是**本机**清单，不进 git（`.gitignore` 里那行）；模板是 `repos.example.tsv`，`init` 缺文件时自动生成，`clone` 缺文件时报错并给出命令。所以团队共享的仓库清单要写进 `repos.example.tsv`——它跟着 git 走，别人 `init` 就得到同一份。
 
 ### 跨仓库任务怎么提交
@@ -125,8 +127,8 @@ mv /tmp/repos.tsv.bak repos.tsv                 # 本机那份放回来（已在
 
 | 路径 | 是什么 | 不要了就 |
 | --- | --- | --- |
-| `.agents/skills/` 里的 9 个软链 | 订阅了 [mattpocock/skills](https://github.com/mattpocock/skills) 的一套开发流程 | `for s in …; do ./scripts/workspace.sh remove $s; done` |
-| `repos.example.tsv` 里的 `mattpocock-skills` 行 | 上面那 9 个软链的目标 | 删掉那行（本机 `repos.tsv` 里同步删） |
+| `.agents/skills/` 里的 8 个软链 | 订阅了 [mattpocock/skills](https://github.com/mattpocock/skills) 的一套开发流程 | `for s in …; do ./scripts/workspace.sh remove $s; done` |
+| `repos.example.tsv` 里的 `mattpocock-skills` 行 | 上面那 8 个软链的目标 | 删掉那行（本机 `repos.tsv` 里同步删） |
 | `.agents/rules/dev-flow.md` + `AGENTS.md` 路由表里对应那行 | 跟那套流程绑定的规则 | 两处一起删，别只删一个 |
 | `.agents/rules/go.md` | 示例规则（Go 专用） | 删文件 + 删路由表那行 |
 | `.agents/rules/before-implementing.md` | 通用规则，可以留 | — |

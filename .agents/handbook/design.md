@@ -14,10 +14,12 @@ agent-workspace/
 ├── .agents/
 │   ├── skills/            # 跨仓库共享 skills（每个子目录一个 SKILL.md；第三方用相对软链）
 │   ├── rules/             # 跨仓库规则，按需读取，永远不会自动进上下文
+│   ├── repos/<repo>/      # 单个业务仓库的个人流程文档（AGENTS.md、GLOSSARY、ADR、tracker 配置）
 │   └── handbook/          # 面向人的脚手架说明：用法、设计（本文件）、坑
 ├── .claude/skills         # -> ../.agents/skills（Claude Code 只认这个位置）
+├── .scratch/              # 票据、brief、report、verdict：不进 git
 ├── repos/                 # 外部仓库的本地 checkout：业务仓库 + skill 源仓库（内容不入本仓库版本控制）
-└── scripts/workspace.sh   # init / clone / check / new / add / remove / update
+└── scripts/               # workspace.sh（脚手架）、orca-dispatch.sh 与 worktree-setup.sh（Orca 派工）
 ```
 
 ## 三层资源模型
@@ -26,7 +28,7 @@ agent-workspace/
 
 | 层 | 写在哪 | 何时进上下文 | 放什么 |
 | --- | --- | --- | --- |
-| 常驻 | `AGENTS.md` | 每次会话，始终 | 仓库地图、硬约定、路由表。**每行都按每次会话付费，能短则短** |
+| 常驻 | `AGENTS.md` | 每次会话开头读一次，之后每轮请求都随 system prompt 发 | 仓库地图、硬约定、路由表。**每行都按每轮请求付费，能短则短** |
 | 自动路由 | `.agents/skills/<name>/SKILL.md` | 只有 `description` 常驻，命中才读全文 | 多步骤流程 + 附带脚本 / 模板 / 参考文件 |
 | 按需 | `.agents/rules/<topic>.md` | 从不自动加载，靠 `AGENTS.md` 的一行指针 | 静态规范、检查清单、长篇约束 |
 

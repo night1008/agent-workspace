@@ -8,6 +8,7 @@
 | --- | --- |
 | `repos/<repo>/` | 外部仓库的本地 checkout（业务仓库或 skill 源）；本仓库不跟踪其内容，用 `update` 拉最新 |
 | `.agents/rules/` | 跨仓库规则，按需读取 |
+| `.agents/repos/<repo>/` | 单个业务仓库的个人流程文档（AGENTS.md、GLOSSARY、ADR、tracker 配置）；业务仓库里不落这些 |
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
 | `repos.example.tsv` | 仓库清单模板（name / url / branch / kind 四列）；本机清单 `repos.tsv` 由它生成，不进 git |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
@@ -17,7 +18,7 @@
 ## 开工
 
 1. 先确定任务属于哪个 `repos/<repo>/`。
-2. 读 `repos/<repo>/AGENTS.md`（存在时）。在根目录启动的会话不会自动加载它，需要显式读。
+2. 读 `repos/<repo>/AGENTS.md`（业务事实：构建、测试、目录约定）和 `.agents/repos/<repo>/AGENTS.md`（个人编排偏好），两份都可能不存在。子代理不会自动加载它们，派工时给路径。冲突时具体压通用：业务事实 > 个人偏好 > 本文件。
 3. 按路由表读规则：
 
 | 当你…… | 先读 |

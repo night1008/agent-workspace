@@ -11,7 +11,7 @@
 5. 派工后必须确认 agent 真的在干活：`projection.stage.activity` 为 `working`，或 transcript 出现 agent turn。`input_accepted`、`turnStart: unsupported`、`requiresAction: false` 都不是启动证据。存活看 `projection.liveness.verdict`：`exited` 是已经没了，`unverifiable` 只是没证据、不等于死了；`worker-show` 的 `observation.status` 只是 PTY 存活，终端活着也可能坐着卡死或已退出的 agent。
 6. 模型：`--model` 只对 claude、codex、cursor、antigravity、muse、omp、opencode 有效，且不能与 `--terminal` 同用；pi、zcode 等不支持，模型来自自身配置（pi 见 `~/.pi/agent/settings.json`）。是否生效只看 `projection.provider.model` 或回执的 `launch.effective`，不看传了什么参数。
 7. 长 prompt 注入会退化成 `[paste #N +M lines]` 占位符，worker 拿不到正文。spec 写短；完整规格让 worker 用 `orca orchestration task-list --run <run> --json` 自取。
-8. worker 的 `.scratch/<feature>/` 落在它自己的 worktree 里，主 agent 要去那个 worktree 读；`scripts/orca-dispatch.sh status|close` 已经这样查。
+8. worker 的产物写工作区根的 `.scratch/<feature>/{briefs,reports,verdicts}/`，派工时给绝对路径；写进自己 worktree 的 `.scratch/` 会让主 agent 跨目录读，还可能被误提交。
 9. 一个 feature 一个 Run；`--deps` 只编码真依赖（review 依赖 dev），review 必须等 dev 结算后再 `worker-start`。
 10. 起任务：依赖已满足的 dev task 一次起满并行跑，不等整批结算——谁先结算就派它的 review；某条依赖结算解开下一个 task，就立刻补进来，按连续补位收口而不是分批收口。FAIL 用 `worker-start --terminal <dev handle>` 复用 dev 终端修复。
 11. Task 被 stop 后会变 `blocked`，不能直接重派：先 `task-update --status failed`，再 `worker-start --task <id> --retry-of <旧 dispatch>`，并重述 placement 与 agent。
