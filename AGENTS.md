@@ -11,6 +11,7 @@
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
 | `repos.example.tsv` | 仓库清单模板（name / url / branch / kind 四列）；本机清单 `repos.tsv` 由它生成，不进 git |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
+| `scripts/orca-dispatch.sh`、`scripts/worktree-setup.sh` | Orca 派工封装与 worktree 引导；规则在 `.agents/rules/orchestration.md` |
 | `README.md`、`.agents/handbook/` | 面向人的说明：脚手架用法 / 设计 / 坑 / 提示词写法；不进上下文，`.ignore` 让 rg / fd 也搜不到，需要时按路径直读 |
 
 ## 开工
@@ -22,6 +23,7 @@
 | 当你…… | 先读 |
 | --- | --- |
 | 做需求 / 设计 / 实现 / 测试（任何功能开发） | `.agents/rules/dev-flow.md` |
+| 用 Orca 编排派工（主 agent 编排、子 agent 开发与验收） | `.agents/rules/orchestration.md` |
 | 写或改 Go 代码 | `.agents/rules/go.md` |
 | 用中文回复或写中文文本 | `.agents/rules/chinese.md` |
 | 用户输入英文时提供表达建议 | `.agents/rules/english.md` |

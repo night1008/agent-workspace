@@ -78,6 +78,19 @@ git -C repos/svc-b add -A && git -C repos/svc-b commit -m "feat: ..."
 
 `repos/` 下的目录不一定是 git 仓库：本地草稿、解压来的快照、纯资产目录都可以放，`clone` 与 `update` 会跳过它们（`check` 会把它标成“非 git 仓库”的提示，不算问题）。
 
+### Orca 派工与 worktree 引导
+
+```bash
+./scripts/orca-dispatch.sh init <feature>                      # 建 Run 与 .scratch/<feature> 骨架
+./scripts/orca-dispatch.sh dispatch <feature> <task-id> [选项]  # 派工，并确认 activity=working
+./scripts/orca-dispatch.sh doctor <feature>                    # 逐条核对 dispatch 是否真在干活
+./scripts/orca-dispatch.sh status <feature>                    # 三条完成判据，非零即未完成
+./scripts/orca-dispatch.sh close <feature>                     # 列出待 release 的 dispatch
+./scripts/worktree-setup.sh                                    # 新 worktree：补 repos.tsv + clone + 自检
+```
+
+Orca 建的 worktree 里没有 `repos/` 和 `repos.tsv`，先跑 `worktree-setup.sh` 引导，别拿 `workspace.sh check` 当通用验收门槛。派工规则在 `.agents/rules/orchestration.md`。
+
 ### 拿脚手架自身的更新
 
 `workspace.sh update` 只管 `repos/*`，不管脚手架本身。脚手架自己的更新取决于当初怎么建的：
