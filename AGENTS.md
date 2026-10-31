@@ -11,7 +11,7 @@
 | `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
 | `repos.example.tsv` | 仓库清单模板（name / url / branch / kind 四列）；本机清单 `repos.tsv` 由它生成，不进 git |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
-| `README.md`、`.agents/handbook/` | 面向人的脚手架说明；只在改工作区自身时读（`.ignore` 让 rg / fd 搜不到它们） |
+| `README.md`、`.agents/handbook/` | 面向人的说明：脚手架用法 / 设计 / 坑 / 提示词写法；不进上下文，`.ignore` 让 rg / fd 也搜不到，需要时按路径直读 |
 
 ## 开工
 
@@ -25,7 +25,6 @@
 | 写或改 Go 代码 | `.agents/rules/go.md` |
 | 用中文回复或写中文文本 | `.agents/rules/chinese.md` |
 | 用户输入英文时提供表达建议 | `.agents/rules/english.md` |
-| 写提示词、或评审一份需求 / 提示词 | `.agents/rules/prompt-writing.md` |
 | 动手做一个非平凡改动之前 | `.agents/rules/before-implementing.md` |
 | 新增一条跨仓库规则 | `.agents/rules/_template.md` |
 
@@ -34,6 +33,6 @@
 - 跨仓库的规则只写在 `.agents/rules/`；某个仓库自己的约定只写在该仓库的 `AGENTS.md`。同一条含义只保留一处。
 - 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链进来（不复制，更新靠 `git -C repos/<repo> pull`）。两者都会被 pi、Codex、Claude Code 读到（`.claude/skills` 是指向 `.agents/skills` 的软链）。
 - 仓库内的改动在仓库内提交：`git -C repos/<repo> ...`。本仓库的提交只包含工作区文件，`repos/*` 已 gitignore。
-- 代码自解释优先：严禁添加复述代码行为、翻译标识符或拆解步骤的显见注释；注释仅允许用于记录业务背景、设计决策或规避缺陷的非直观逻辑。
+- 代码自解释优先：严禁添加复述代码行为、翻译标识符或拆解步骤的显见注释；注释仅允许用于记录业务背景、设计决策或规避缺陷的非直观逻辑。确需注释时优先用英文，只有涉及中文业务背景、英文说不清时才用中文。
 - 让你分析时只给分析：写代码等我明确说动手。
 - 回复用中文，commit message 用中文（Conventional Commits 的类型前缀保留英文）。

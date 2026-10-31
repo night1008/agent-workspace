@@ -219,7 +219,7 @@ cmd_update() {
       run git -C "${dir}" fetch --quiet origin "${branch}" || { warn "${repo}: fetch 失败"; failed=$((failed + 1)); continue; }
     fi
     head_sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null || true)"
-    # 使用本次 fetch 的结果，避免自定义 refspec 下 origin/<branch> 过期。
+    # 用这次 fetch 的结果，避免自定义 refspec 下 origin/<branch> 过期。
     if [[ ${DRY_RUN} -eq 1 ]]; then
       up_sha="$(git -C "${dir}" rev-parse --verify "refs/remotes/origin/${branch}^{commit}" 2>/dev/null || true)"
     else

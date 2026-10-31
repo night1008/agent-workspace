@@ -53,7 +53,7 @@ agent-workspace/
 由此得出一条规矩：
 
 - `.agents/skills/` 写一次，pi / Codex / agy 直接可用；只有 Claude Code 靠仓库里那个 `.claude/skills` 软链（相对路径，跟 git 一起走）。
-- `.agents/rules/` 在 agy 里是自动加载的（不靠指针，代价是变成常驻）；pi / Codex / Claude Code 三家都不会自动读，只能靠 `AGENTS.md` 的指针——所以路由表那一行是必需的，不是装饰。
+- `.agents/rules/` 在 agy 里是自动加载的（不靠指针，代价是变成常驻）；pi / Codex / Claude Code 三家都不会自动读，只能靠 `AGENTS.md` 的指针——路由表那一行是必需的。
 - Claude Code 另有原生的 `.claude/rules/`（启动即加载，可用 `paths:` frontmatter 做文件级触发）。想把规则也变成 Claude 的常驻内容，就把 `.agents/rules` 链过去，代价是同一批规则在 pi / Codex 里仍是指针式的，两边语义不再一致。
 - 用户级指令仍是各家自己的：`~/.pi/agent/AGENTS.md`、`~/.codex/AGENTS.md`、`~/.claude/CLAUDE.md`、`~/.gemini/config/`（agy）。
 - 根目录的 `CLAUDE.md` 是 `AGENTS.md` 的软链：只认 `CLAUDE.md` 的 agent 也能拿到指令，且两边永远同源——改 `AGENTS.md` 就同步生效。
