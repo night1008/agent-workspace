@@ -353,7 +353,7 @@ cmd_check() {
   local row name url branch kind repo repo_dir rel resolved target_dir
   local skill_dir skill_md fm_name desc problems=0
   local seen_names=" " s linked_target linked_real linked_repo linked_rev
-  local leak leak_n=0
+  local leak leak_n=0 progress_n
 
   title "工作区"
   if [[ -s "${WS}/AGENTS.md" ]]; then ok "AGENTS.md 非空"; else warn "AGENTS.md 为空"; problems=$((problems + 1)); fi
@@ -447,6 +447,8 @@ cmd_check() {
     else
       skip "${repo}: 无自带 AGENTS.md"
     fi
+    progress_n="$(progress_problems "${repo}")"
+    [[ "${progress_n}" -eq 0 ]] || problems=$((problems + progress_n))
   done < <(list_repo_dirs)
 
   title "业务仓库里的流程产物"
@@ -602,6 +604,19 @@ EOF
     ok "${repo}: AGENTS.md"
   fi
 
+  if [[ -f "${dir}/progress.md" ]]; then
+    [[ -n "${quiet}" ]] || skip "progress.md 已存在，保留不动"
+  else
+    if [[ ${DRY_RUN} -eq 0 ]]; then
+      cat > "${dir}/progress.md" <<EOF
+# ${repo} 进度
+
+一个 feature 一行，最新的在上。格式：\`- <日期> <feature> <状态> <票据> <分支>\`，状态取 planning / in-progress / blocked / done，票据与分支没有就写 \`-\`。
+EOF
+    fi
+    ok "${repo}: progress.md"
+  fi
+
   if [[ -z "${quiet}" ]]; then
     echo
     echo "上下文目录：.agents/${dir#"${WS}/.agents/"}"
@@ -647,6 +662,40 @@ converge_repo_docs() {
     repo_docs_init "${name}" "" "single" quiet \
       || warn "${name}: 跳过（找不到种子模板）"
   done < "${MANIFEST}"
+}
+
+# 校验 progress.md：- <YYYY-MM-DD> <feature> <status> <ticket> <branch>
+# 输出问题行数到 stdout，告警走 stderr
+progress_problems() { # <repo>
+  local repo="$1" f="${WS}/.agents/repos/${repo}/progress.md"
+  local line d feat st rest n=0
+  [[ -f "${f}" ]] || { printf '0\n'; return 0; }
+  while IFS= read -r line; do
+    case "${line}" in
+      "- "*) ;;
+      *) continue ;;
+    esac
+    read -r d feat st rest <<< "${line#- }"
+    if [[ -z "${feat}" ]]; then
+      warn "${repo}: progress.md 缺 feature 名：${line}" >&2
+      n=$((n + 1)); continue
+    fi
+    if [[ ! "${d}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+      warn "${repo}: progress.md 日期不是 YYYY-MM-DD：${line}" >&2
+      n=$((n + 1)); continue
+    fi
+    case "${st}" in
+      planning|in-progress|blocked|done) ;;
+      *)
+        warn "${repo}: progress.md 状态只能是 planning / in-progress / blocked / done：${line}" >&2
+        n=$((n + 1)); continue ;;
+    esac
+    if [[ -z "${rest}" ]]; then
+      warn "${repo}: progress.md 缺票据与分支（没有就写 - -）：${line}" >&2
+      n=$((n + 1))
+    fi
+  done < "${f}"
+  printf '%s\n' "${n}"
 }
 
 # ---------------------------------------------------------------- main

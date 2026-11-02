@@ -55,6 +55,7 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 | 领域术语 `GLOSSARY.md`、`GLOSSARY-MAP.md`、决策 `docs/adr/` | `.agents/repos/<repo>/` |
 | tracker 与 domain layout 两份配置（`triage` 装后才有标签映射） | `.agents/repos/<repo>/docs/agents/` |
 | 个人编排偏好（流程、派工要求、验收口径） | `.agents/repos/<repo>/AGENTS.md` |
+| 开发进度摘要（一个 feature 一行） | `.agents/repos/<repo>/progress.md` |
 | 业务仓库根的 `AGENTS.md` | 仓库本来就有的那份不碰：业务变动让它过时就改、随业务提交（构建命令、目录约定这类事实）；个人内容永不写入 |
 | 跨仓库的规则与清单 | `.agents/rules/`，并在根 `AGENTS.md` 路由表加一行 |
 | 短命状态（handoff、临时笔记） | 系统临时目录，不进任何仓库 |
