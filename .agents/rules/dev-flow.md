@@ -66,14 +66,14 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 
 逐个在主会话里实现 ticket，上下文必爆。默认一个 ticket 一个 subagent（上游 `implement-spec` 的形态），主会话只留 spec 指针、ticket 图和短回报。**这一节就是委派授权**——pi-subagents 默认父代理直接干活，`implement-spec` 正文那句不算授权。
 
-派工四件事：agent 用 `worker`；cwd 是 `repos/<repo>`、worktree 隔离（要求源干净）；产物 `file-only` 落到工作区根的 `.scratch/<feature>/<ticket>.md`；task 只给 ticket 指针 + 分支约定 + 「必须用 tdd」，再加上两份 `AGENTS.md` 的绝对路径（worker 只会自动加载业务仓库那份）。
+派工四件事：agent 用 `worker`；cwd 是 `repos/<repo>`，在仓库当前分支上顺序跑（一次一个写者，不建 worktree）；产物 `file-only` 落到工作区根的 `.scratch/<feature>/<ticket>.md`；task 只给 ticket 指针 + 分支约定 + 「必须用 tdd」，再加上两份 `AGENTS.md` 的绝对路径（worker 只会自动加载业务仓库那份）。
 
 - 只走 context pointer（ticket、分支、commit、笔记文件），别粘代码或摘要。
-- 一个 worktree 一个 writer。
+- 一条分支一个 writer：顺序跑，不并行。
 - slice 要装进一个全新窗口；`/to-spec` 与 `/to-tickets` 之间不 clear / compact。
-- 收尾只跑一次 `code-review` 再清 worktree；小改动不走这套。
+- 收尾只跑一次 `code-review`；小改动不走这套。
 
-坑（上游踩过）：`code-review` 中途跑会成循环；worktree 里 gitignored 的 fixture / 本地库 / 凭据会**静默 skip 报绿**；implementer 不自动继承 `tdd`。
+坑（上游踩过）：`code-review` 中途跑会成循环；隔离目录（临时 worktree）里 gitignored 的 fixture / 本地库 / 凭据会**静默 skip 报绿**；implementer 不自动继承 `tdd`。
 
 ## 已知差异
 
