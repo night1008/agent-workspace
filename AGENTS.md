@@ -26,6 +26,7 @@
 | 做需求 / 设计 / 实现 / 测试（任何功能开发） | `.agents/rules/dev-flow.md` |
 | 用 Orca 编排（主 agent 派工、子 agent 开发与验收） | `.agents/rules/orchestration.md` |
 | 写或改 Go 代码 | `.agents/rules/go.md` |
+| 写或改 shell 脚本 | `.agents/rules/shell.md` |
 | 写 commit message 或开 MR | `.agents/rules/commit-and-mr.md` |
 | 用中文回复或写中文文本 | `.agents/rules/chinese.md` |
 | 用户输入英文时提供表达建议 | `.agents/rules/english.md` |
