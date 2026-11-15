@@ -26,7 +26,10 @@
 | 做需求 / 设计 / 实现 / 测试（任何功能开发） | `.agents/rules/dev-flow.md` |
 | 用 Orca 编排（主 agent 派工、子 agent 开发与验收） | `.agents/rules/orchestration.md` |
 | 写检查清单或做验收裁决 | `.agents/rules/checklist.md` |
+| 写代码注释或审注释 | `.agents/rules/comments.md` |
+| 写或改测试 | `.agents/rules/tests.md` |
 | 写或改 Go 代码 | `.agents/rules/go.md` |
+| 写或改前端 / TypeScript 代码 | `.agents/rules/ts.md` |
 | 写或改 shell 脚本 | `.agents/rules/shell.md` |
 | 写 commit message 或开 MR | `.agents/rules/commit-and-mr.md` |
 | 用中文回复或写中文文本 | `.agents/rules/chinese.md` |
@@ -39,6 +42,6 @@
 - 跨仓库的规则只写在 `.agents/rules/`；某个仓库自己的约定只写在该仓库的 `AGENTS.md`。同一条含义只保留一处。
 - 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链进来（不复制，更新靠 `git -C repos/<repo> pull`）。两者都会被 pi、Codex、Claude Code 读到（`.claude/skills` 是指向 `.agents/skills` 的软链）。
 - 仓库内的改动在仓库内提交：`git -C repos/<repo> ...`。本仓库的提交只包含工作区文件，`repos/*` 已 gitignore。
-- 代码自解释优先：严禁添加复述代码行为、翻译标识符或拆解步骤的显见注释；注释仅允许用于记录业务背景、设计决策或规避缺陷的非直观逻辑。确需注释时优先用英文，只有涉及中文业务背景、英文说不清时才用中文。
+- 注释默认不写，语言默认英文；细则见 `.agents/rules/comments.md`。
 - 让你分析时只给分析：写代码等我明确说动手。
 - 回复用中文，commit message 用中文（Conventional Commits 的类型前缀保留英文）。

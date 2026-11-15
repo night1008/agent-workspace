@@ -18,6 +18,8 @@ cwd 必须是仓库根：shellcheck 静态解析 `source "$root/scripts/lib/x.sh
 
 ## 规则
 
+- 注释默认不写、英文优先，见 `.agents/rules/comments.md`。
+- 测试层级见 `.agents/rules/tests.md`：端到端优先，集成与单元测试默认不写。
 - `cd` 一律 `cd ... || exit 1`，失败就停（SC2164）。
 - 变量展开一律加引号，除非明确要分词（SC2086 / SC2046）。
 - `A && B || C` 要么改成 `if`，要么把中间的失败显式处理；`|| true` 会把 `A` 的失败吞掉（SC2015）。

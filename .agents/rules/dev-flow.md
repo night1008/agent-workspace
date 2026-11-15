@@ -67,7 +67,7 @@ grill-with-docs → to-spec → to-tickets → implement-spec（内含 tdd 与 c
 
 逐个在主会话里实现 ticket，上下文必爆。默认一个 ticket 一个 subagent（上游 `implement-spec` 的形态），主会话只留 spec 指针、ticket 图和短回报。**这一节就是委派授权**——pi-subagents 默认父代理直接干活，`implement-spec` 正文那句不算授权。
 
-派工五件事：agent 用 `worker`；cwd 是 `repos/<repo>`，在仓库当前分支上顺序跑（一次一个写者，不建 worktree）；产物 `file-only` 落到工作区根的 `.scratch/<feature>/<ticket>.md`；task 只给 ticket 指针 + 分支约定 + 「必须用 tdd」+ 该票据的检查清单，再加上两份 `AGENTS.md` 的绝对路径（worker 只会自动加载业务仓库那份）。
+派工五件事：agent 用 `worker`；cwd 是 `repos/<repo>`，在仓库当前分支上顺序跑（一次一个写者，不建 worktree）；产物 `file-only` 落到工作区根的 `.scratch/<feature>/<ticket>.md`；task 只给 ticket 指针 + 分支约定 + 「必须用 tdd，测试层级按 `tests.md`：端到端优先」+ 该票据的检查清单；路径一律给绝对路径：两份 `AGENTS.md`（根与仓库）加本次适用的 `.agents/rules/*.md`（至少 `comments.md` 与 `tests.md`，Go 加 `go.md`，shell 加 `shell.md`，前端加 `ts.md`）——worker 只会自动加载业务仓库那份 `AGENTS.md`。
 
 - 只走 context pointer（ticket、分支、commit、笔记文件），别粘代码或摘要。
 - 一条分支一个 writer：顺序跑，不并行。
