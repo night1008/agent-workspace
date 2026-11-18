@@ -14,6 +14,7 @@
 8. worker 的产物写工作区根的 `.scratch/<feature>/{briefs,reports,verdicts}/`，派工时给绝对路径；不往业务仓库里写（会被误提交，也会弄脏工作树）。
 9. 一个 feature 一个 Run；`--deps` 只编码真依赖（review 依赖 dev），review 必须等 dev 结算后再 `worker-start`。
 10. 顺序执行，不并行：一次只派一个 dev task，worktree 用 `--worktree current`（默认，当前分支）；它结算后派它的 review，review 过了再派下一个，同一分支同时只有一个写者。FAIL 用 `worker-start --terminal <dev handle>` 复用 dev 终端修复。
+    review PASS 后立即 `worker-release` 这个 task 的 dev 与 review 两条 dispatch，不攒到 feature 结束：dev 终端只在等这次 review 的 FAIL 时要复用，过了就是空转。回收顺序必须是 review PASS 之后，不能 dev 结算就收——否则 FAIL 时无终端可复用，只能重派丢上下文。后一个 task 的 review 挑出前一个 task 的回归问题时，前一个 dev 已被回收，同样只能重派。
 11. Task 被 stop 后会变 `blocked`，不能直接重派：先 `task-update --status failed`，再 `worker-start --task <id> --retry-of <旧 dispatch>`，并重述 placement 与 agent。
 12. 完成判据三条（`status` 已实现）：Task 全部 `completed`；`worker-list --terminal-state reclaimable` 为空；verdict 文件至少一个、全部 PASS、且清单无 FAIL 项。
 13. `worker-stop` 返回 `stop_unknown`（退出 1）时进程未证明退出，禁止 release；先看回执的 `processAction`：为 `closed_agent_terminal` 表示 Orca 已关终端，不要再跑 `terminal close`，否则显式 `terminal close` 并在报告里说明是取消而非 release。
