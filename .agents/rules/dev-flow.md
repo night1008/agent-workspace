@@ -56,9 +56,10 @@ spec.md (需求与边界)
 4. **审查失败与重试上限**：
    - Review 判定 FAIL 时，主 Agent 将确定性证据返回原 Worker 终端重派修复；
    - **连续重试上限为 5 次**，第 5 次仍失败开启决策门，停下等待人工介入。
-5. **单任务原子提交**：
+5. **单任务原子提交与连续推进**：
    - **每个 Task 经 Reviewer 裁决 PASS 后，立即在目标业务仓库内生成一条对应 commit**（符合 `.agents/rules/commit-and-mr.md`）；
-   - 提交完成后释放该 Task 的 worker 与 reviewer 资源，再推进下一个 Task。
+   - 提交完成后释放该 Task 的 worker 与 reviewer 资源；
+   - **自主推进纪律**：任务计划已确认的前提下，只要无未消解批注、无决策门阻塞且审查 PASS，主 Agent 必须直接自主推进下一个 Task（起草 Checklist → 派工 Worker → 派工 Reviewer → 原子提交），**严禁每完成一个 Task 就停下向用户询问确认**。仅在触发决策门（连续 5 次 FAIL、既定假设失效、新发现人工批注）时才停下。
 
 ## 产物与路径隔离
 
