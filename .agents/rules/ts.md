@@ -1,40 +1,33 @@
-# TypeScript 与前端规则
+# TypeScript 与前端规范
 
-适用：改 `repos/` 下 TypeScript / 前端代码（React、Next、Vite 等）时读。
+适用：修改 `repos/` 下 TypeScript / 前端代码（React、Next、Vite 等）时读。
 
 ## 规则
 
-1. 类型不逃逸：不写 `any`；确实未知的用 `unknown` 再收窄。需要压制时用 `@ts-expect-error` 并在同一行写清原因，不用 `@ts-ignore`（后者在错误消失后仍静默）。
-2. `as` 断言只允许用在已校验的外部数据边界，并注明来源；不允许用它消掉编译器报错。
-3. 导出的公共函数、hook、API 客户端显式写返回类型；组件内部可以靠推断。
-4. 沿用仓库既有写法，不引入新范式：组件定义风格、样式方案（antd / Tailwind / CSS Module）、状态管理、路径别名，都按该仓库现状来，不新增第二套。
-5. import 顺序交给 eslint 的排序规则，不手排；不手动改 lockfile，不切换包管理器（仓库有 `pnpm-lock.yaml` 就用 pnpm，有 `package-lock.json` 就用 npm）。
-6. 副作用集中在 `useEffect` 且依赖数组写全；压制 `react-hooks/exhaustive-deps` 必须写明原因。
-7. 面向用户的文案用中文且集中放置（i18n 或常量文件），不散落在组件里；内部错误、日志用英文。
-8. 测试按 `.agents/rules/tests.md`。先确认该仓库有没有可跑的端到端（有 `e2e/` 且配置能跑通 spec 才算）：有就优先扩它；没有就不要在功能票里新建 Playwright 框架，验收走「构建 + 类型检查 + 按步骤走关键路径」的冒烟证据。组件测试只在 E2E 覆盖不到时写（Testing Library），不写快照测试。
-9. 注释按 `.agents/rules/comments.md`：默认不写、英文优先。
+1. **类型零逃逸**：严禁使用 `any`，未知类型使用 `unknown` 收窄。必须压制时使用 `@ts-expect-error` 并附带原因，禁止使用 `@ts-ignore`。
+2. **断言约束**：`as` 断言仅限用于已校验的外部边界输入，禁止用于消解编译器类型错误。
+3. **接口显式返回**：导出的公共函数、Hook、API 客户端必须显式声明返回类型；内部实现使用推断。
+4. **既有范式优先**：严格沿用目标仓库现有的组件风格、样式方案（Tailwind / CSS Modules / UI 库）、状态库与路径别名，禁止引入第二套范式。
+5. **包管理器锁定**：严格匹配锁文件（`pnpm-lock.yaml` → `pnpm`，`package-lock.json` → `npm`），严禁混用包管理器或手动修改 lockfile。
+6. **副作用纯净**：副作用集中于 `useEffect` 且依赖项写全，禁止无故压制 `react-hooks/exhaustive-deps`。
+7. **文案语言**：用户可见文案使用中文且集中存放在常量或 i18n 配置中；内部日志与错误一律使用英文。
+8. **测试与快照**：禁止快照测试。按 `.agents/rules/tests.md` 执行，无可用 E2E 设施时走冒烟命令证据，禁止无授权搭建测试框架。
 
 ## 检查
-
-优先用仓库自己的 scripts，不自己拼参数；没有 scripts 时再退回下面的命令。
 
 ```bash
 BASE=${BASE:-origin/main}
 
-# 1) 类型
+# 1) 类型检查
 npx tsc --noEmit
 
-# 2) lint / 单测（有就跑到）
+# 2) Lint 与测试
 npm run lint --if-present
 npm run test --if-present
 
-# 3) 端到端：仓库有可跑设施时才执行（例如在它自己的 e2e 目录下）
-#    npx playwright test
-#    没有就跳过，并在证据里写清用哪条冒烟命令代替：build + 起服务 + 走关键路径
-
-# 4) 本次新增的类型逃逸与快照
+# 3) 检查新增的类型逃逸与快照
 git diff "$BASE"...HEAD -U0 -- '*.ts' '*.tsx' \
   | grep -E '^\+' | grep -E '\bany\b|@ts-ignore|toMatchSnapshot' || echo '(无新增)'
 ```
 
-判定：1、2 必须通过；3 视仓库是否有端到端设施而定，没有时必须有冒烟证据；4 有输出时逐条核对，任何 `any` / `@ts-ignore` / 快照都必须有规则 1、8 允许的理由。
+判定：1、2 必须通过；若 3 存在新增项，任一无合规理由即判 FAIL。

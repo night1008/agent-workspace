@@ -1,24 +1,24 @@
 # agent-workspace
 
-多仓库工作区：业务代码在 `repos/<repo>/`（各自独立的 git 仓库），跨仓库共享的配置在 `.agents/`。
+多仓库工作区：业务代码在 `repos/<repo>/`，跨仓库共享配置在 `.agents/`。
 
 ## 地图
 
 | 路径 | 是什么 |
 | --- | --- |
-| `repos/<repo>/` | 外部仓库的本地 checkout（业务仓库或 skill 源）；本仓库不跟踪其内容，用 `update` 拉最新 |
+| `repos/<repo>/` | 外部仓库 checkout；内容不入版本控制，用 `update` 拉最新 |
 | `.agents/rules/` | 跨仓库规则，按需读取 |
-| `.agents/repos/<repo>/` | 单个业务仓库的个人流程文档（AGENTS.md、GLOSSARY、ADR、tracker 配置）；业务仓库里不落这些 |
-| `.agents/skills/` | 跨仓库 skills，靠各自的 description 自动路由 |
-| `repos.example.tsv` | 仓库清单模板（name / url / branch / kind 四列）；本机清单 `repos.tsv` 由它生成，不进 git |
+| `.agents/repos/<repo>/` | 目标仓库的个人流程文档（AGENTS.md、GLOSSARY、ADR、tracker 配置） |
+| `.agents/skills/` | 跨仓库 skills，按 description 自动路由 |
+| `repos.example.tsv` | 仓库清单模板；本机清单 `repos.tsv` 不入 git |
 | `scripts/workspace.sh` | init / clone / check / new / add / remove / update |
-| `scripts/orca-dispatch.sh`、`scripts/worktree-setup.sh` | 把 Orca 派工的固定步骤包成命令；新 worktree 缺 `repos/` 时用它补齐 |
-| `README.md`、`.agents/handbook/` | 面向人的说明：脚手架用法 / 设计 / 坑 / 提示词写法；不进上下文，`.ignore` 让 rg / fd 也搜不到，需要时按路径直读 |
+| `scripts/orca-dispatch.sh` | Orca 派工与编排命令 |
+| `README.md`、`.agents/handbook/` | 脚手架设计与用法；按路径直读 |
 
 ## 开工
 
-1. 先确定任务属于哪个 `repos/<repo>/`。
-2. 读 `repos/<repo>/AGENTS.md`（业务事实：构建、测试、目录约定）和 `.agents/repos/<repo>/AGENTS.md`（个人编排偏好），两份都可能不存在。子代理不会自动加载它们，派工时给路径。冲突时具体压通用：业务事实 > 个人偏好 > 本文件。
+1. 确定任务所属的 `repos/<repo>/`。
+2. 读 `repos/<repo>/AGENTS.md`（业务事实）与 `.agents/repos/<repo>/AGENTS.md`（编排偏好）；冲突时：业务事实 > 编排偏好 > 本文件。
 3. 按路由表读规则：
 
 | 当你…… | 先读 |
@@ -39,9 +39,9 @@
 
 ## 约定
 
-- 跨仓库的规则只写在 `.agents/rules/`；某个仓库自己的约定只写在该仓库的 `AGENTS.md`。同一条含义只保留一处。
-- 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链进来（不复制，更新靠 `git -C repos/<repo> pull`）。两者都会被 pi、Codex、Claude Code 读到（`.claude/skills` 是指向 `.agents/skills` 的软链）。
-- 仓库内的改动在仓库内提交：`git -C repos/<repo> ...`。本仓库的提交只包含工作区文件，`repos/*` 已 gitignore。
-- 注释默认不写，语言默认英文；细则见 `.agents/rules/comments.md`。
+- 跨仓库规则只写在 `.agents/rules/`；业务仓库自身约定只写在该仓库内。
+- 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链引入。
+- 业务改动在各仓库内提交（`git -C repos/<repo> ...`）；本仓库仅提交脚手架与共享规则。
+- 注释默认不写、英文优先；细则见 `.agents/rules/comments.md`。
 - 让你分析时只给分析：写代码等我明确说动手。
-- 回复用中文，commit message 用中文（Conventional Commits 的类型前缀保留英文）。
+- 回复用中文，commit message 用中文（Conventional Commits 类型前缀保留英文）。

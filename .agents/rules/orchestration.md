@@ -6,28 +6,29 @@
 
 1. 主 agent 只编排：建 Run、建 Task、派 Dispatch、判裁决、路由修复；不写业务代码。
 2. review-only 的 `worker_done` 只授权综合结论，不授权主 agent 改代码；修复必须派回 dev。
-3. dev 与 reviewer 都在目标仓库的当前分支上：reviewer 只读，同一时刻只允许一个写者。
-4. dev 的验收必须是可执行命令；review 的裁决按 `.agents/rules/checklist.md` 的清单编号逐条给 PASS/FAIL 加命令证据，不接受模糊结论。
-5. 派工后必须确认 agent 真的在干活：`projection.stage.activity` 为 `working`，或 transcript 出现 agent turn。`input_accepted`、`turnStart: unsupported`、`requiresAction: false` 都不是启动证据。存活看 `projection.liveness.verdict`：`exited` 是已经没了，`unverifiable` 只是没证据、不等于死了；`worker-show` 的 `observation.status` 只是 PTY 存活，终端活着也可能坐着卡死或已退出的 agent。
-6. 模型：`--model` 只对 claude、codex、cursor、antigravity、muse、omp、opencode 有效，且不能与 `--terminal` 同用；pi、zcode 等不支持，模型来自自身配置（pi 见 `~/.pi/agent/settings.json`）。是否生效只看 `projection.provider.model` 或回执的 `launch.effective`，不看传了什么参数。
-7. 长 prompt 注入会退化成 `[paste #N +M lines]` 占位符，worker 拿不到正文。spec 写短；完整规格让 worker 用 `orca orchestration task-list --run <run> --json` 自取。
-8. worker 的产物写工作区根的 `.scratch/<feature>/{briefs,reports,verdicts}/`，派工时给绝对路径；不往业务仓库里写（会被误提交，也会弄脏工作树）。
-9. 一个 feature 一个 Run；`--deps` 只编码真依赖（review 依赖 dev），review 必须等 dev 结算后再 `worker-start`。
-10. 顺序执行，不并行：一次只派一个 dev task，worktree 用 `--worktree current`（默认，当前分支）；它结算后派它的 review，review 过了再派下一个，同一分支同时只有一个写者。FAIL 用 `worker-start --terminal <dev handle>` 复用 dev 终端修复。
-    review PASS 后立即 `worker-release` 这个 task 的 dev 与 review 两条 dispatch，不攒到 feature 结束：dev 终端只在等这次 review 的 FAIL 时要复用，过了就是空转。回收顺序必须是 review PASS 之后，不能 dev 结算就收——否则 FAIL 时无终端可复用，只能重派丢上下文。后一个 task 的 review 挑出前一个 task 的回归问题时，前一个 dev 已被回收，同样只能重派。
-11. Task 被 stop 后会变 `blocked`，不能直接重派：先 `task-update --status failed`，再 `worker-start --task <id> --retry-of <旧 dispatch>`，并重述 placement 与 agent。
-12. 完成判据三条（`status` 已实现）：Task 全部 `completed`；`worker-list --terminal-state reclaimable` 为空；verdict 文件至少一个、全部 PASS、且清单无 FAIL 项。
-13. `worker-stop` 返回 `stop_unknown`（退出 1）时进程未证明退出，禁止 release；先看回执的 `processAction`：为 `closed_agent_terminal` 表示 Orca 已关终端，不要再跑 `terminal close`，否则显式 `terminal close` 并在报告里说明是取消而非 release。
-14. 同一 Task 失败两次开 `gate-create` 决策门，不自动重试第三次。
-15. 不用 worktree 形式（同一分支顺序跑）。将来若重新启用，新 worktree 缺 `repos/` 与 `repos.tsv`，先跑 `scripts/worktree-setup.sh`；不要拿 `scripts/workspace.sh check` 当通用验收门槛。
+3. dev 与 reviewer 都在目标仓库当前分支：reviewer 只读，同一分支只允许单一写者。
+4. 验收命令化：dev 验收必须提供可执行命令；review 裁决按 `.agents/rules/checklist.md` 逐条提供命令证据与 PASS/FAIL。
+5. 存活判定：启动证据只认 `projection.stage.activity` 为 `working` 或 transcript 出现 agent turn；存活证据只认 `projection.liveness.verdict`（`exited` 判定死亡）。禁止将 PTY 状态（`observation.status`）作为存活依据。
+6. 模型生效：只看 `projection.provider.model` 或回执的 `launch.effective`。`--model` 禁止与 `--terminal` 混用；pi/zcode 等不支持命令行传参的模型在自身配置中指定。
+7. 派工 spec 保持简短：禁止长文注入。完整规格让 worker 执行 `orca orchestration task-list --run <run> --json` 获取。
+8. 产物路径：派工时传入工作区绝对路径 `.scratch/<feature>/{briefs,reports,verdicts}/`，禁止写入业务仓库。
+9. 依赖约束：一个 feature 一个 Run。review 必须显式声明依赖 dev，且必须在 dev 结算后启动 `worker-start`。
+10. 顺序单写者：一次只派一个 dev task（默认当前分支）；结算后派对应 review，PASS 后才派下一个。
+    - 修复：FAIL 时使用 `worker-start --terminal <dev handle>` 复用原 dev 终端。
+    - 释放：review PASS 后立即 `worker-release` 当前 task 的 dev 与 review，禁止提前或延后批量释放。
+11. 重派中止的任务：Task 处于 `blocked` 时，先执行 `task-update --status failed`，再执行 `worker-start --task <id> --retry-of <旧 dispatch>` 重述 placement 与 agent。
+12. 完成判据：Task 全部 `completed`；`worker-list --terminal-state reclaimable` 为空；verdict 文件至少一个、全部 PASS 且清单无 FAIL 项。
+13. 异常中止：`worker-stop` 返回 `stop_unknown`（退出码 1）时禁止 release。根据 `processAction` 处置：为 `closed_agent_terminal` 时不再操作；否则执行 `terminal close` 并在报告中标记为取消。
+14. 决策门：同一 Task 失败两次调用 `gate-create` 开决策门，禁止自动重试第三次。
+15. 运行模式：默认在当前分支顺序执行，不使用 worktree。若启用新 worktree，必须先运行 `scripts/worktree-setup.sh` 补齐环境。
 
 ## 检查
 
 ```bash
 bash -n scripts/orca-dispatch.sh
-./scripts/orca-dispatch.sh doctor <feature>   # 派工后确认 agent 真在干活
+./scripts/orca-dispatch.sh doctor <feature>   # 派工后确认 agent 处于 working 状态
 ./scripts/orca-dispatch.sh status <feature>   # 三条完成判据，非零即未完成
 ./scripts/orca-dispatch.sh close <feature>    # 实质判据通过后列出待 release 的 dispatch
 ```
 
-命令用法以 `orca skills get orchestration` 为准；非 Orca 终端拿不到该指南时不要猜 flag，停下报告。
+命令用法以 `orca skills get orchestration` 为准；非 Orca 终端拿不到该指南时停下报告，禁止盲猜 flag。
