@@ -16,3 +16,7 @@ repos/*
 
 # 本机仓库清单（由 repos.example.tsv 生成，改它别改 example）
 repos.tsv
+
+# 各业务仓库的个人流程文档与进度（仅本机保留，不进脚手架 git）
+.agents/repos/*
+!.agents/repos/.gitkeep

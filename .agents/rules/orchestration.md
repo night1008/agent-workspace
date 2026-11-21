@@ -11,7 +11,7 @@
 5. 存活判定：启动证据只认 `projection.stage.activity` 为 `working` 或 transcript 出现 agent turn；存活证据只认 `projection.liveness.verdict`（`exited` 判定死亡）。禁止将 PTY 状态（`observation.status`）作为存活依据。
 6. 模型生效：只看 `projection.provider.model` 或回执的 `launch.effective`。`--model` 禁止与 `--terminal` 混用；pi/zcode 等不支持命令行传参的模型在自身配置中指定。
 7. 派工 spec 保持简短：禁止长文注入。完整规格让 worker 执行 `orca orchestration task-list --run <run> --json` 获取。
-8. 产物路径：派工时传入工作区绝对路径 `.scratch/<feature>/{briefs,reports,verdicts}/`，禁止写入业务仓库。
+8. 产物路径：派工时传入工作区绝对路径 `.scratch/<repo>/<feature>/{briefs,reports,verdicts}/`，禁止写入业务仓库。
 9. 依赖约束：一个 feature 一个 Run。review 必须显式声明依赖 dev，且必须在 dev 结算后启动 `worker-start`。
 10. 顺序单写者与单任务提交：一次只派一个 dev task（默认当前分支）；结算后派对应 review。
     - 修复：FAIL 时使用 `worker-start --terminal <dev handle>` 复用原 dev 终端，重试上限 5 次。

@@ -5,7 +5,7 @@
 ## 规则
 
 1. **格式规范**：`- [ ] C<n> <可观察断言>｜证据：<命令>｜owner: dev|reviewer`。断言必须为可验证的客观结果，禁止主观定性描述。
-2. **存放位置**：写入票据正文，工作区副本落 `.scratch/<feature>/checklist-<ticket>.md`，禁止写入业务仓库。
+2. **存放位置**：写入票据正文，工作区副本落 `.scratch/<repo>/<feature>/checklist.md`（或 `checklist-<task>.md`），禁止写入业务仓库。
 3. **命令来源**：证据命令优先取自 `.agents/repos/<repo>/AGENTS.md` 中声明的验收口径。
 4. **裁决格式**：
    - 首段：`## Verdict: PASS` 或 `## Verdict: FAIL`
@@ -21,12 +21,13 @@
 ## 检查
 
 ```bash
+REPO=<repo>
 F=<feature>
 
 # 1) 清单与裁决编号一致性（差集为空即通过）
-diff <(grep -o 'C[0-9]\+' .scratch/$F/checklist-*.md | sort -u) \
-     <(grep -o 'C[0-9]\+' .scratch/$F/verdicts/*.md | sort -u)
+diff <(grep -o 'C[0-9]\+' .scratch/$REPO/$F/checklist*.md | sort -u) \
+     <(grep -o 'C[0-9]\+' .scratch/$REPO/$F/verdicts/*.md | sort -u)
 
 # 2) FAIL 项裁决一致性校验
-grep -q 'FAIL' .scratch/$F/verdicts/*.md && grep -q '## Verdict: FAIL' .scratch/$F/verdicts/*.md
+grep -q 'FAIL' .scratch/$REPO/$F/verdicts/*.md && grep -q '## Verdict: FAIL' .scratch/$REPO/$F/verdicts/*.md
 ```

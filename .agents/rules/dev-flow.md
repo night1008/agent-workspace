@@ -28,7 +28,7 @@ spec.md (需求与边界)
 
 进度必须实时就地记录，禁止攒批回填：
 
-1. **实时看板**：在 `.scratch/<feature>/progress.md` 实时记录阶段流转与各 Task 状态（`PENDING`、`IN_PROGRESS`、`BLOCKED`、`DONE`）。
+1. **实时看板**：在 `.scratch/<repo>/<feature>/progress.md` 实时记录阶段流转与各 Task 状态（`PENDING`、`IN_PROGRESS`、`BLOCKED`、`DONE`）。其中 `<feature>` 目录名格式为 `YYYYMMDD-<slug>`（如 `20261121-gateway-mvp`），严禁使用无业务语义的占位符（如 `t1-`）。
 2. **遇阻标记**：触发决策门或发现人工修改意见时，状态显式置为 `BLOCKED: 等待确认 <具体问题>`；解决后更新记录并切回 `IN_PROGRESS`。
 3. **仓库归档**：全部通过后，在 `.agents/repos/<repo>/progress.md` 追加一行永久记录：
    `| <日期> | <feature> | <状态> | <票据> | <分支> |`
@@ -43,7 +43,7 @@ spec.md (需求与边界)
 2. **Worker (实现者)**：
    - 一个 Task 派一个 Worker，在当前分支顺序执行；
    - 仅传递当前 Task 指针、分支约定、`.agents/rules/tests.md` 的 TDD 要求与当前 Checklist 项；
-   - 输出 `file-only` 写入 `.scratch/<feature>/checklist-<id>.md`。
+   - 输出 `file-only` 写入 `.scratch/<repo>/<feature>/checklist.md`（或 `checklist-<task>.md`）。
 3. **Reviewer (审查者)**：
    - Worker 结算后启动，只读权限，不写业务代码；
    - 独立运行当前 Task 清单中的命令，核验命令证据，依据 `.agents/rules/review.md` 产出裁决。
@@ -60,7 +60,7 @@ spec.md (需求与边界)
 
 | 产物 | 存放位置 |
 | --- | --- |
-| 特性五步文档与看板 | `.scratch/<feature>/{spec,plan,task,checklist,review,progress}.md` |
+| 特性五步文档与看板 | `.scratch/<repo>/<feature>/{spec,plan,task,checklist,review,progress}.md` |
 | 个人编排偏好与归档进度 | `.agents/repos/<repo>/{AGENTS.md,progress.md}` |
 | 领域术语与决策记录 | `.agents/repos/<repo>/{GLOSSARY.md,docs/adr/}` |
 | 跨仓库通用规则 | `.agents/rules/` |

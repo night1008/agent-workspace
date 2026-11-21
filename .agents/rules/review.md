@@ -26,10 +26,10 @@
    - **语言**：按文件类型执行对应规则命令（`ts.md` 跑 `tsc --noEmit`、`go.md` 跑 `go test -race`、`shell.md` 跑 `shellcheck`）；FAIL 时贴出报错原文；
    - **提交**：执行 `.agents/rules/commit-and-mr.md` 检查命令，分支与 commit 标题带任务号，正文符合三要素。
 3. **Spec 轴审查（需求与断言核验）**：
-   - 只读模式下逐条独立复跑 `.scratch/<feature>/checklist.md` 中对应当前 Task 的命令；
+   - 只读模式下逐条独立复跑 `.scratch/<repo>/<feature>/checklist.md` 中对应当前 Task 的命令；
    - 检查实际输出与预期断言是否严格一致；FAIL 时完整保留命令失败的输出。
 4. **输出格式**：
-   裁决写入 `.scratch/<feature>/review.md`（或子任务裁决文件）：
+   裁决写入 `.scratch/<repo>/<feature>/review.md`（或子任务裁决文件）：
 
    ```markdown
    ## Verdict: PASS | FAIL
