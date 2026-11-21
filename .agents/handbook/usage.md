@@ -125,15 +125,13 @@ mv /tmp/repos.tsv.bak repos.tsv                 # 本机那份放回来（已在
 
 脚手架本身只有六件东西：`AGENTS.md`（+ `CLAUDE.md` 软链）、`repos.example.tsv`、`.agents/{rules,skills,handbook}/`、`.claude/skills`、`scripts/workspace.sh`。其余都是实例内容：
 
-| 路径 | 是什么 | 不要了就 |
+| 路径 | 是什么 | 说明 |
 | --- | --- | --- |
-| `.agents/skills/` 里的 8 个软链 | 订阅了 [mattpocock/skills](https://github.com/mattpocock/skills) 的一套开发流程 | `for s in …; do ./scripts/workspace.sh remove $s; done` |
-| `repos.example.tsv` 里的 `mattpocock-skills` 行 | 上面那 8 个软链的目标 | 删掉那行（本机 `repos.tsv` 里同步删） |
-| `.agents/rules/dev-flow.md` + `AGENTS.md` 路由表里对应那行 | 跟那套流程绑定的规则 | 两处一起删，别只删一个 |
-| `.agents/rules/go.md` | 示例规则（Go 专用） | 删文件 + 删路由表那行 |
-| `.agents/rules/before-implementing.md` | 通用规则，可以留 | — |
-| `.agents/handbook/prompt-writing.md` | 提示词写法，面向人；不在路由表里 | — |
-| `.agents/rules/_template.md` | 新规则的模板 | 留着 |
+| `.agents/rules/review.md` | 独立双轴审查与验收裁决规则 | 核心审查规范，不依赖第三方 |
+| `.agents/rules/dev-flow.md` | 五步交付流规则 | 核心流程规范 |
+| `.agents/rules/{ts,go,shell}.md` | 语言规范 | 按需使用 |
+| `.agents/rules/before-implementing.md` | 对齐协议 | 通用规则 |
+| `.agents/rules/_template.md` | 新规则模板 | 留着 |
 
 第三方内容在本仓库一律以**软链订阅**的形式存在：本体在 `repos/`，`.agents/skills/` 只有相对软链，升级 = `git -C repos/<repo> pull`。
 另一条路是**复制自持**（`cp -R` 进 `.agents/skills/`）：能改正文，代价是失去升级能力。上游自己也提供这两种形态（plugin 订阅 vs 安装器复制进项目）。

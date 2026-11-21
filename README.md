@@ -20,11 +20,10 @@ pi                                                  # 或 claude / codex / agy�
 工作区根开会话，别进 `repos/<repo>`。细节见 `.agents/rules/dev-flow.md`。
 
 ```text
-模糊需求
-  → /skill:grill-with-docs
-  → /skill:to-spec
-  → /skill:to-tickets
-  → 派 worker 实现（或 /skill:implement-spec）
-  → 独立验收
+需求对齐 (spec.md)
+  → 技术切片 (plan.md)
+  → 任务编排 (task.md)
+  → 编码自验 (checklist.md)
+  → 双轴验收 (review.md)
   → 业务仓库内提交
 ```

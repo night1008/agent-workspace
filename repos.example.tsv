@@ -6,6 +6,3 @@
 # 下面全是示例行，换成你自己的；不用的整行删掉即可。
 #
 # your-service	git@your-host:your-org/your-service.git	main
-
-# 示例：skill 源仓库（kind=skill）。删掉这些行 + .agents/skills 里对应的软链，就得到干净骨架。
-mattpocock-skills	https://github.com/mattpocock/skills	main	skill

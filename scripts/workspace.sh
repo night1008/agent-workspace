@@ -8,8 +8,7 @@
 #   ./scripts/workspace.sh add <repo> <repo 内路径> [--name <skill>]
 #                                             把 repos/<repo> 里的 skill 软链进 .agents/skills/
 #   ./scripts/workspace.sh remove <skill>     移除该软链（实体目录不动）
-#   ./scripts/workspace.sh repo-init <repo> [--tracker github|gitlab|local] [--domain single|multi]
-#                                             生成 .agents/repos/<repo>/ 的流程文档（tracker、domain、AGENTS.md）
+#   ./scripts/workspace.sh repo-init <repo>   生成 .agents/repos/<repo>/ 的流程文档（AGENTS.md、progress.md）
 #   ./scripts/workspace.sh update [repo...]   对比本地与上游（fetch 更新 Git 元数据）
 #   ./scripts/workspace.sh update --apply     拉到上游最新（skill 源 reset，业务仓库只 fast-forward）
 #
@@ -520,71 +519,17 @@ EOF
 
 # ---------------------------------------------------------------- repo-init
 
-# 上游 setup 技能的种子模板目录（任意 skill 源里找到一份就行）
-template_dir() {
-  local d
-  for d in "${REPOS_DIR}"/*/skills/engineering/setup-matt-pocock-skills; do
-    [[ -d "${d}" ]] || continue
-    printf '%s\n' "${d}"
-    return 0
-  done
-  return 1
-}
-
-# 从 origin 的 URL 猜 issue tracker，没远端就用本地 markdown
-# 注意：GitLab 自托管 / GitHub Enterprise 只能靠 --tracker 指定
-detect_tracker() {
-  local url
-  url="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
-  case "${url}" in
-    *github.com*) printf 'github\n' ;;
-    *gitlab*)     printf 'gitlab\n' ;;
-    *)            printf 'local\n' ;;
-  esac
-}
-
-repo_init_header() { # <repo> —— 模板写的是仓库根相对路径，用这段声明改写落点
-  printf '> 个人流程：领域文档在 `.agents/repos/%s/`，票据与产物在工作区根 `.scratch/`；下文写作「仓库根」或结构图里的 `/` 时，按这两处理解。\n\n' "$1"
-}
-
-# repo_docs_init <repo> [tracker] [domain] [quiet]
-# 写 .agents/repos/<repo>/ 的流程文档；模板缺失时返回 1（不 die），由调用方决定是否致命
+# repo_docs_init <repo> [quiet]
+# 写 .agents/repos/<repo>/ 的流程文档（AGENTS.md、progress.md）
 repo_docs_init() {
-  local repo="$1" tracker="${2:-}" domain="${3:-single}" quiet="${4:-}"
-  local repo_dir="${REPOS_DIR}/${repo}" tpl dir agents_dir tracker_line domain_line f target source
-  [[ -n "${tracker}" ]] || tracker="$(detect_tracker "${repo_dir}")"
-  dir="${WS}/.agents/repos/${repo}"
-  agents_dir="${dir}/docs/agents"
-  tpl="$(template_dir)" || return 1
+  local repo="$1" quiet="${2:-}"
+  local dir="${WS}/.agents/repos/${repo}"
 
   if [[ -z "${quiet}" ]]; then
     title "生成 ${repo} 的个人流程文档"
-    skip "tracker=${tracker} domain=${domain} 模板=${tpl#"${WS}"/}"
   fi
 
-  run mkdir -p "${agents_dir}"
-  for f in "issue-tracker:${tpl}/issue-tracker-${tracker}.md" "domain:${tpl}/domain.md"; do
-    target="${agents_dir}/${f%%:*}.md"
-    source="${f#*:}"
-    if [[ -f "${target}" ]]; then
-      [[ -n "${quiet}" ]] || skip "docs/agents/${f%%:*}.md 已存在，保留不动"
-      continue
-    fi
-    if [[ ${DRY_RUN} -eq 0 ]]; then
-      { repo_init_header "${repo}"; cat "${source}"; } > "${target}"
-    fi
-    ok "${repo}: docs/agents/${f%%:*}.md（来自 $(basename "${source}")）"
-  done
-
-  case "${tracker}" in
-    github) tracker_line='GitHub issues（`gh issue create`）见 `docs/agents/issue-tracker.md`' ;;
-    gitlab) tracker_line='GitLab issues（`glab issue create`）见 `docs/agents/issue-tracker.md`' ;;
-    local)  tracker_line='本地 markdown：`.scratch/<feature>/issues/NN-slug.md`，见 `docs/agents/issue-tracker.md`' ;;
-  esac
-  case "${domain}" in
-    single) domain_line='single-context：`GLOSSARY.md` + `docs/adr/` 都在本目录，见 `docs/agents/domain.md`' ;;
-    multi)  domain_line='multi-context：`GLOSSARY-MAP.md` 在本目录，指向各上下文的 `GLOSSARY.md`，见 `docs/agents/domain.md`' ;;
-  esac
+  run mkdir -p "${dir}"
 
   if [[ -f "${dir}/AGENTS.md" ]]; then
     [[ -n "${quiet}" ]] || skip "AGENTS.md 已存在，保留不动"
@@ -595,10 +540,10 @@ repo_docs_init() {
 
 个人编排偏好与流程指针。业务事实（构建、测试、目录约定）在 \`repos/${repo}/AGENTS.md\`，那份是团队资产，改它随业务提交。产物落点见 \`.agents/rules/dev-flow.md\`。
 
-## Agent skills
+## 编排与验收口径
 
-- Issue tracker：${tracker_line}
-- Domain docs：${domain_line}
+- 验收命令: 
+- 启动命令: 
 EOF
     fi
     ok "${repo}: AGENTS.md"
@@ -626,28 +571,17 @@ EOF
 }
 
 cmd_repo_init() {
-  local repo="" tracker="" domain="single"
+  local repo=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --tracker) tracker="${2:-}"; shift 2 ;;
-      --domain)  domain="${2:-}"; shift 2 ;;
       -*) die "未知选项：$1" ;;
       *)  [[ -z "${repo}" ]] || die "多余参数：$1"; repo="$1"; shift ;;
     esac
   done
-  [[ -n "${repo}" ]] || die "用法: workspace.sh repo-init <repo> [--tracker github|gitlab|local] [--domain single|multi]"
-  case "${domain}" in
-    single|multi) ;;
-    *) die "--domain 只能是 single / multi：${domain}" ;;
-  esac
+  [[ -n "${repo}" ]] || die "用法: workspace.sh repo-init <repo>"
   [[ -d "${REPOS_DIR}/${repo}" ]] || die "repos/${repo} 不存在：先 ./scripts/workspace.sh clone"
-  case "${tracker}" in
-    ""|github|gitlab|local) ;;
-    *) die "--tracker 只能是 github / gitlab / local：${tracker}" ;;
-  esac
 
-  repo_docs_init "${repo}" "${tracker}" "${domain}" \
-    || die "找不到种子模板：repos/*/skills/engineering/setup-matt-pocock-skills（先加 mattpocock-skills）"
+  repo_docs_init "${repo}"
 }
 
 # 给已存在但缺个人流程文档的业务仓库补齐（clone 只覆盖新克隆的）
@@ -658,9 +592,8 @@ converge_repo_docs() {
     parse_manifest_row "${row}"
     [[ -z "${name}" || "${kind}" == "skill" ]] && continue
     [[ -d "${REPOS_DIR}/${name}" ]] || continue
-    [[ -d "${WS}/.agents/repos/${name}/docs/agents" ]] && continue
-    repo_docs_init "${name}" "" "single" quiet \
-      || warn "${name}: 跳过（找不到种子模板）"
+    [[ -d "${WS}/.agents/repos/${name}" ]] && continue
+    repo_docs_init "${name}" quiet
   done < "${MANIFEST}"
 }
 

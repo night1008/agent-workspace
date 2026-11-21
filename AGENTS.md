@@ -25,7 +25,8 @@
 | --- | --- |
 | 做需求 / 设计 / 实现 / 测试（任何功能开发） | `.agents/rules/dev-flow.md` |
 | 用 Orca 编排（主 agent 派工、子 agent 开发与验收） | `.agents/rules/orchestration.md` |
-| 写检查清单或做验收裁决 | `.agents/rules/checklist.md` |
+| 写检查清单 | `.agents/rules/checklist.md` |
+| 独立审查代码变更或做验收裁决 | `.agents/rules/review.md` |
 | 写代码注释或审注释 | `.agents/rules/comments.md` |
 | 写或改测试 | `.agents/rules/tests.md` |
 | 写或改 Go 代码 | `.agents/rules/go.md` |
