@@ -43,6 +43,6 @@
 - 跨仓库规则只写在 `.agents/rules/`；业务仓库自身约定只写在该仓库内。
 - 新增共享 skill 用 `scripts/workspace.sh new <name>`；第三方 skill 用 `scripts/workspace.sh add <repo> <路径>` 软链引入。
 - 业务改动在各仓库内提交（`git -C repos/<repo> ...`）；本仓库仅提交脚手架与共享规则。
-- 注释默认不写、英文优先；细则见 `.agents/rules/comments.md`。
+- 注释尽量少写甚至不写（零注释优先）、英文优先；细则见 `.agents/rules/comments.md`。
 - 让你分析时只给分析：写代码等我明确说动手。
 - 回复用中文，commit message 用中文（Conventional Commits 类型前缀保留英文）。
